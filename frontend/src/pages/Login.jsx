@@ -79,7 +79,6 @@ export default function Login() {
           <div className="space-y-3 pt-2">
             {[
               'Drag-and-drop workflow builder',
-              'Connect 200+ integrations',
               'Real-time execution logs',
             ].map((f) => (
               <div key={f} className="flex items-center gap-3">
@@ -94,11 +93,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Bottom quote */}
-        <div className="relative z-10 border border-white/10 rounded-xl p-4 bg-white/5 backdrop-blur-sm">
-          <p className="text-gray-300 text-sm italic">"FlowForge cut our integration time by 80%."</p>
-          <p className="text-gray-500 text-xs mt-1">— Engineering team</p>
-        </div>
+
       </div>
 
       {/* Right form panel */}
