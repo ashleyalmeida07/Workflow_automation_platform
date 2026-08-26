@@ -54,7 +54,7 @@ function Hero() {
     <section className="w-full isolate min-h-screen overflow-hidden relative">
       {/* Background image — a.png */}
       <img src="/a.png" alt="" className="w-full h-full object-cover absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-black/55" />
+      <div className="pointer-events-none absolute inset-0 bg-black/20" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0a0a0a]" />
 
       {/* Nav */}
