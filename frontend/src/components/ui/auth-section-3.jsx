@@ -1,4 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
+// We use React.useEffect via the default import
+const import_react = React;
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
@@ -14,6 +16,16 @@ export default function AuthSectionThree({ mode = "register" }) {
   );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Reset form when switching between login and register
+  import_react.useEffect(() => {
+    setForm(
+      mode === "register"
+        ? { firstName: "", lastName: "", email: "", password: "" }
+        : { email: "", password: "" }
+    );
+    setError("");
+  }, [mode]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
