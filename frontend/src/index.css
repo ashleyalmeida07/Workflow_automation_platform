@@ -4,6 +4,8 @@
 @theme inline {
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
+  --font-weight-heading: 500;
+  --font-weight-body: 400;
   --color-background: var(--bg-0);
   --color-foreground: var(--text-100);
 }

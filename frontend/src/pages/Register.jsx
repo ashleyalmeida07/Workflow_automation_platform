@@ -70,7 +70,7 @@ export default function Register() {
         {/* Center content */}
         <div className="relative z-10 space-y-6">
           <h2
-            className="text-5xl text-white leading-tight"
+            className="text-5xl text-white leading-tight font-medium"
             style={{ fontFamily: 'var(--font-serif)' }}
           >
             Build workflows<br />

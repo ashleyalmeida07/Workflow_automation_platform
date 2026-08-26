@@ -126,7 +126,7 @@ function Hero() {
 
         {/* Headline */}
         <h1
-          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white leading-[1.0] tracking-tight font-semibold animate-fade-slide-in-2 mb-6"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white leading-[1.0] tracking-tight font-medium animate-fade-slide-in-2 mb-6"
           style={{ fontFamily: 'var(--font-serif)' }}
         >
           Automate Your<br />
@@ -224,7 +224,7 @@ function Features() {
       <div className="max-w-6xl mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-4 block" style={{ fontFamily: 'var(--font-sans)' }}>Features</span>
-          <h2 className="text-4xl sm:text-5xl text-white font-semibold leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
+          <h2 className="text-4xl sm:text-5xl text-white font-medium leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
             Everything you need to<br />automate at scale
           </h2>
           <p className="text-white/40 text-lg max-w-xl mx-auto mt-4" style={{ fontFamily: 'var(--font-sans)' }}>
@@ -325,7 +325,7 @@ function Pricing() {
       <div className="max-w-5xl mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-4 block" style={{ fontFamily: 'var(--font-sans)' }}>Pricing</span>
-          <h2 className="text-4xl sm:text-5xl text-white font-semibold" style={{ fontFamily: 'var(--font-serif)' }}>Simple, transparent pricing</h2>
+          <h2 className="text-4xl sm:text-5xl text-white font-medium" style={{ fontFamily: 'var(--font-serif)' }}>Simple, transparent pricing</h2>
           <p className="text-white/40 text-lg mt-4" style={{ fontFamily: 'var(--font-sans)' }}>No hidden fees. Cancel anytime.</p>
         </Reveal>
 
@@ -388,7 +388,7 @@ function CTABanner() {
     <section className="bg-[#0c0c0c] border-t border-white/[0.04] py-24 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <Reveal>
-          <h2 className="text-4xl sm:text-5xl text-white font-semibold mb-5 leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
+          <h2 className="text-4xl sm:text-5xl text-white font-medium mb-5 leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
             Ready to automate<br />your first workflow?
           </h2>
           <p className="text-white/40 text-lg mb-10" style={{ fontFamily: 'var(--font-sans)' }}>
