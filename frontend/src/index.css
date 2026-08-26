@@ -18,6 +18,16 @@
   --text-300: #a1a1aa;
   --text-400: #71717a;
   --radius: 0.5rem;
+
+  /* Sidebar component tokens — black/orange theme */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #111111;
+  --card-foreground: #fafafa;
+  --border: rgba(255,255,255,0.06);
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --muted-foreground: rgba(255,255,255,0.35);
 }
 
 @keyframes fadeSlideIn {
