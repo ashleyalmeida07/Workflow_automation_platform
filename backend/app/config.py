@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/flowforge"
 
     # CORS — comma-separated list of allowed origins
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://workflow-automation-platform-eta.vercel.app"
 
     # JWT
     JWT_SECRET: str = "change-this-secret"
