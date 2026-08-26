@@ -170,7 +170,6 @@ export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
         <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-md shadow-orange-500/30" alt="Logo" />
-        <span className="text-white font-bold text-[15px] tracking-tight">FlowForge</span>
       </div>
 
       <WorkspaceSwitcher userName={userName} />

@@ -63,7 +63,6 @@ function Hero() {
           <div className="flex items-center justify-between pt-5">
             <Link to="/" className="flex items-center gap-2.5">
               <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
-              <span className="text-white font-bold text-lg tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1 rounded-full bg-white/5 px-1 py-1 ring-1 ring-white/10 backdrop-blur">
@@ -330,11 +329,10 @@ function Pricing() {
           {PLANS.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 100}>
               <div
-                className={`rounded-2xl p-7 flex flex-col h-full relative transition-all duration-200 ${
-                  plan.highlighted
+                className={`rounded-2xl p-7 flex flex-col h-full relative transition-all duration-200 ${plan.highlighted
                     ? 'bg-orange-500/10 border border-orange-500/30 ring-1 ring-orange-500/20'
                     : 'bg-white/[0.02] border border-white/[0.06] hover:border-white/10'
-                }`}
+                  }`}
               >
                 {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -361,11 +359,10 @@ function Pricing() {
                 </div>
                 <Link
                   to={plan.href}
-                  className={`w-full text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    plan.highlighted
+                  className={`w-full text-center py-3 rounded-xl text-sm font-semibold transition-colors ${plan.highlighted
                       ? 'bg-orange-500 hover:bg-orange-400 text-white'
                       : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/[0.08]'
-                  }`}
+                    }`}
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
                   {plan.cta}
@@ -423,7 +420,6 @@ function Footer() {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2.5">
           <img src="/logo.png" className="w-7 h-7 rounded-lg object-cover" alt="Logo" />
-          <span className="text-white font-bold" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
         </div>
         <div className="flex items-center gap-6">
           {['Features', 'How It Works', 'Pricing'].map(link => (

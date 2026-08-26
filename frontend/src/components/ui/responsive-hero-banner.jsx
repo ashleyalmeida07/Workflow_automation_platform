@@ -42,7 +42,6 @@ const ResponsiveHeroBanner = ({
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5">
               <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-orange-500/40" alt="Logo" />
-              <span className="text-white font-bold text-lg tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
             {/* Desktop nav pill — matches reference exactly */}

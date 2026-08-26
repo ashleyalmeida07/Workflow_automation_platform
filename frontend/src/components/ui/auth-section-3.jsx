@@ -77,7 +77,6 @@ export default function AuthSectionThree({ mode = "register" }) {
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2.5 mb-8">
               <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
-              <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </div>
 
             <div>
@@ -223,7 +222,6 @@ export default function AuthSectionThree({ mode = "register" }) {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
               <img src="/logo.png" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-orange-500/20" alt="Logo" />
-              <span className="text-white font-bold text-2xl tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
             {/* Content */}
