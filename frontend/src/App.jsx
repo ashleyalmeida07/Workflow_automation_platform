@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import Landing from './pages/Landing'
 import Home from './pages/Home'
 import Flow from './pages/Flow'
 import Register from './pages/Register'
@@ -9,8 +10,8 @@ import Dashboard from './pages/Dashboard'
 function App() {
   return (
     <Routes>
-      {/* Root → Login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Root → Landing page */}
+      <Route path="/" element={<Landing />} />
 
       {/* Auth */}
       <Route path="/login" element={<Login />} />
