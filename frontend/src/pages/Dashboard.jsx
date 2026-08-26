@@ -255,7 +255,7 @@ export default function Dashboard() {
           <button
             id="new-workflow-btn"
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 transition-colors"
           >
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             New Workflow

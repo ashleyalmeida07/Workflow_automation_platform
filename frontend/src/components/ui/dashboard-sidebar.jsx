@@ -167,11 +167,6 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
 export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
   return (
     <div className="flex flex-col w-[240px] h-full bg-[#111111] border-r border-white/[0.06] p-3">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
-        <img src="/logo.png" className="h-8 w-auto object-contain drop-shadow-sm" alt="Logo" />
-      </div>
-
       <WorkspaceSwitcher userName={userName} />
 
       {/* Nav groups */}
@@ -246,6 +241,36 @@ export function SearchModal({ onClose }) {
 
 // ── DashboardLayout ───────────────────────────────────────────────────────────
 
+function TopbarUserMenu({ userName }) {
+  const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
+
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setOpen(!open)}
+        className="w-8 h-8 rounded-full bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xs font-bold transition-colors"
+      >
+        {userName?.[0]?.toUpperCase() ?? '?'}
+      </button>
+      
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-10 w-40 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl z-50 py-1 flex flex-col gap-0.5">
+            <div 
+              onClick={() => { setOpen(false); navigate('/') }}
+              className="px-3 py-2 mx-1 text-[13px] text-white/70 hover:bg-white/5 hover:text-white rounded-md cursor-pointer transition-colors"
+            >
+              Go to Home Page
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function DashboardLayout({ activeId, onSelect, userName, onLogout, children, breadcrumb }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -301,9 +326,7 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
               <span>Search...</span>
               <kbd className="ml-auto text-[10px] font-mono">⌘K</kbd>
             </button>
-            <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xs font-bold">
-              {userName?.[0]?.toUpperCase() ?? '?'}
-            </div>
+            <TopbarUserMenu userName={userName} />
           </div>
         </div>
 
