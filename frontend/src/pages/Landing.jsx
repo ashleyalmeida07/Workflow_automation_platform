@@ -2,6 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Zap, BarChart, Lock, Plug } from 'lucide-react'
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  }
+}
+
 // ── Scroll-reveal hook ────────────────────────────────────────────────────────
 function useScrollReveal(options = {}) {
   const ref = useRef(null)
@@ -42,6 +51,20 @@ function Reveal({ children, delay = 0, className = '' }) {
 // ── Hero Section ──────────────────────────────────────────────────────────────
 function Hero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      fetch(`${API}/auth/profile`, { headers: authHeaders() })
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Not logged in')
+        })
+        .then(data => setUser(data))
+        .catch(() => localStorage.removeItem('token'))
+    }
+  }, [])
 
   const navLinks = [
     { label: 'Home', href: '/', isActive: true },
@@ -76,16 +99,38 @@ function Hero() {
                   {link.label}
                 </a>
               ))}
-              <Link
-                to="/register"
-                className="ml-1 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-orange-50 transition-colors"
-                style={{ fontFamily: 'var(--font-sans)' }}
-              >
-                Get Started
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M7 7h10v10" /><path d="M7 17 17 7" />
-                </svg>
-              </Link>
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors rounded-full"
+                  style={{ fontFamily: 'var(--font-sans)' }}
+                >
+                  Dashboard
+                </Link>
+              ) : null}
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="ml-1 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                  style={{ fontFamily: 'var(--font-sans)' }}
+                >
+                  <div className="w-5 h-5 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 text-[10px] font-bold">
+                    {user.name?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                  {user.name}
+                </Link>
+              ) : (
+                <Link
+                  to="/register"
+                  className="ml-1 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-orange-50 transition-colors"
+                  style={{ fontFamily: 'var(--font-sans)' }}
+                >
+                  Get Started
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M7 7h10v10" /><path d="M7 17 17 7" />
+                  </svg>
+                </Link>
+              )}
             </nav>
 
             <button
@@ -104,8 +149,16 @@ function Hero() {
                 <a key={link.label} href={link.href} className="block px-4 py-2 text-sm text-white/70 hover:text-white rounded-xl hover:bg-white/10 transition">{link.label}</a>
               ))}
               <hr className="border-white/10 my-2" />
-              <Link to="/login" className="block px-4 py-2 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition">Sign In</Link>
-              <Link to="/register" className="block px-4 py-2 text-sm font-semibold text-orange-400 rounded-xl hover:bg-orange-500/10 transition">Get Started →</Link>
+              {user ? (
+                <Link to="/dashboard" className="block px-4 py-2 text-sm font-semibold text-orange-400 rounded-xl hover:bg-orange-500/10 transition">
+                  Dashboard →
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" className="block px-4 py-2 text-sm text-white/60 hover:text-white rounded-xl hover:bg-white/5 transition">Sign In</Link>
+                  <Link to="/register" className="block px-4 py-2 text-sm font-semibold text-orange-400 rounded-xl hover:bg-orange-500/10 transition">Get Started →</Link>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -136,26 +189,41 @@ function Hero() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-slide-in-4">
-          <Link
-            to="/register"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 px-6 py-3.5 transition-colors"
-            style={{ fontFamily: 'var(--font-sans)' }}
-          >
-            Start for free
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/55 hover:text-white px-6 py-3.5 transition-colors"
-            style={{ fontFamily: 'var(--font-sans)' }}
-          >
-            Sign in
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
-            </svg>
-          </Link>
+          {user ? (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 px-6 py-3.5 transition-colors"
+              style={{ fontFamily: 'var(--font-sans)' }}
+            >
+              Go to Dashboard
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 px-6 py-3.5 transition-colors"
+                style={{ fontFamily: 'var(--font-sans)' }}
+              >
+                Start for free
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/55 hover:text-white px-6 py-3.5 transition-colors"
+                style={{ fontFamily: 'var(--font-sans)' }}
+              >
+                Sign in
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
+                </svg>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Feature pills */}
@@ -285,7 +353,7 @@ function HowItWorks() {
 const PLANS = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     period: 'forever',
     desc: 'Perfect for getting started.',
     features: ['5 active workflows', '100 executions/month', 'Visual workflow builder', 'Community support'],
@@ -295,7 +363,7 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: '$19',
+    price: '₹0',
     period: 'per month',
     desc: 'For teams that move fast.',
     features: ['Unlimited workflows', '10,000 executions/month', 'Real-time execution logs', 'Webhooks & API access', 'Priority support'],
@@ -330,8 +398,8 @@ function Pricing() {
             <Reveal key={plan.name} delay={i * 100}>
               <div
                 className={`rounded-2xl p-7 flex flex-col h-full relative transition-all duration-200 ${plan.highlighted
-                    ? 'bg-orange-500/10 border border-orange-500/30 ring-1 ring-orange-500/20'
-                    : 'bg-white/[0.02] border border-white/[0.06] hover:border-white/10'
+                  ? 'bg-orange-500/10 border border-orange-500/30 ring-1 ring-orange-500/20'
+                  : 'bg-white/[0.02] border border-white/[0.06] hover:border-white/10'
                   }`}
               >
                 {plan.highlighted && (
@@ -360,8 +428,8 @@ function Pricing() {
                 <Link
                   to={plan.href}
                   className={`w-full text-center py-3 rounded-xl text-sm font-semibold transition-colors ${plan.highlighted
-                      ? 'bg-orange-500 hover:bg-orange-400 text-white'
-                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/[0.08]'
+                    ? 'bg-orange-500 hover:bg-orange-400 text-white'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/[0.08]'
                     }`}
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
