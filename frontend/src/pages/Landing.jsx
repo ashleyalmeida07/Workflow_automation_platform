@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { Zap, BarChart, Lock, Plug } from 'lucide-react'
 
 // ── Scroll-reveal hook ────────────────────────────────────────────────────────
 function useScrollReveal(options = {}) {
@@ -126,11 +127,11 @@ function Hero() {
 
         {/* Headline */}
         <h1
-          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white leading-[1.0] tracking-tight font-medium animate-fade-slide-in-2 mb-6"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] tracking-tight font-medium animate-fade-slide-in-2 mb-6"
           style={{ fontFamily: 'var(--font-serif)' }}
         >
           Automate Your<br />
-          <span className="text-orange-400">Workflows</span> Visually
+          Workflows Visually
         </h1>
 
         {/* Description */}
@@ -165,16 +166,16 @@ function Hero() {
         {/* Feature pills */}
         <div className="mt-16 flex flex-wrap justify-center gap-3 animate-fade-slide-in-4">
           {[
-            { icon: '⚡', label: 'Visual workflow builder' },
-            { icon: '📊', label: 'Real-time execution logs' },
-            { icon: '🔒', label: 'Secure JWT authentication' },
-            { icon: '🔌', label: 'API & webhook support' },
+            { icon: <Zap size={14} className="text-orange-400" />, label: 'Visual workflow builder' },
+            { icon: <BarChart size={14} className="text-orange-400" />, label: 'Real-time execution logs' },
+            { icon: <Lock size={14} className="text-orange-400" />, label: 'Secure JWT authentication' },
+            { icon: <Plug size={14} className="text-orange-400" />, label: 'API & webhook support' },
           ].map((f) => (
             <div
               key={f.label}
               className="flex items-center gap-2 rounded-full bg-white/[0.06] ring-1 ring-white/[0.08] backdrop-blur px-4 py-2"
             >
-              <span className="text-sm">{f.icon}</span>
+              <div className="flex items-center justify-center">{f.icon}</div>
               <span className="text-white/60 text-[13px] font-medium" style={{ fontFamily: 'var(--font-sans)' }}>{f.label}</span>
             </div>
           ))}
