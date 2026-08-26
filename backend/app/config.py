@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # Google Auth
-    GOOGLE_CLIENT_ID: str = "YOUR_GOOGLE_CLIENT_ID"
+    GOOGLE_CLIENT_ID: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
