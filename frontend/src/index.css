@@ -1,1 +1,53 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-background: var(--bg-0);
+  --color-foreground: var(--text-100);
+}
+
+:root {
+  --bg-0: #09090b;
+  --bg-100: #18181b;
+  --bg-200: #27272a;
+  --bg-300: #3f3f46;
+  --text-100: #fafafa;
+  --text-200: #e4e4e7;
+  --text-300: #a1a1aa;
+  --text-400: #71717a;
+  --radius: 0.5rem;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in-1 {
+  animation: fadeSlideIn 0.6s ease forwards;
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+.animate-fade-slide-in-2 {
+  animation: fadeSlideIn 0.6s ease forwards;
+  animation-delay: 0.25s;
+  opacity: 0;
+}
+.animate-fade-slide-in-3 {
+  animation: fadeSlideIn 0.6s ease forwards;
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+.animate-fade-slide-in-4 {
+  animation: fadeSlideIn 0.6s ease forwards;
+  animation-delay: 0.55s;
+  opacity: 0;
+}
