@@ -62,11 +62,7 @@ function Hero() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between pt-5">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
+              <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
               <span className="text-white font-bold text-lg tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
@@ -426,11 +422,7 @@ function Footer() {
     <footer className="bg-[#0a0a0a] border-t border-white/[0.04] py-12 px-6">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </div>
+          <img src="/logo.png" className="w-7 h-7 rounded-lg object-cover" alt="Logo" />
           <span className="text-white font-bold" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
         </div>
         <div className="flex items-center gap-6">

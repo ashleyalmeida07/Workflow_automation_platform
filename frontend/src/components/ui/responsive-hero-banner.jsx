@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const ResponsiveHeroBanner = ({
-  backgroundImageUrl = '/hero-bg.jpg',
+  backgroundImageUrl = '/a.png',
   navLinks = [
     { label: 'Home', href: '/', isActive: true },
     { label: 'Features', href: '#features' },
@@ -41,11 +41,7 @@ const ResponsiveHeroBanner = ({
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/40">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
+              <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-orange-500/40" alt="Logo" />
               <span className="text-white font-bold text-lg tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
@@ -161,7 +157,7 @@ const ResponsiveHeroBanner = ({
 
           {/* Feature pills */}
           <div className="mx-auto mt-20 max-w-3xl animate-fade-slide-in-2">
-            <p className="text-xs text-white/40 text-center mb-5 uppercase tracking-widest" style={{ fontFamily: 'var(--font-sans)' }}>
+            <p className="text-xs text-white/40 text-center mb-2 uppercase tracking-widest" style={{ fontFamily: 'var(--font-sans)' }}>
               Everything you need to automate
             </p>
             <div className="flex flex-wrap justify-center gap-3">

@@ -46,8 +46,9 @@ export default function AuthSectionThree({ mode = "register" }) {
           navigate("/login");
         }
       }
-    } catch {
-      setError("Could not connect to server");
+    } catch (err) {
+      console.error("Auth Error:", err);
+      setError(err.message === "Failed to fetch" ? "Could not connect to server. Check CORS or server status." : err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -63,11 +64,7 @@ export default function AuthSectionThree({ mode = "register" }) {
             
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2.5 mb-8">
-              <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
+              <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
               <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </div>
 
@@ -213,11 +210,7 @@ export default function AuthSectionThree({ mode = "register" }) {
           <div className="relative z-10 flex flex-col h-full justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
+              <img src="/logo.png" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-orange-500/20" alt="Logo" />
               <span className="text-white font-bold text-2xl tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </Link>
 
