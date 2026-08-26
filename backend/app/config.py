@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Google Auth
+    GOOGLE_CLIENT_ID: str = "YOUR_GOOGLE_CLIENT_ID"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]

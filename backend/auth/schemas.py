@@ -12,6 +12,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
 class UserResponse(BaseModel):
     id: int
     name: str

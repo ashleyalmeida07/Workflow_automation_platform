@@ -4,6 +4,7 @@ const import_react = React;
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
+import { useGoogleLogin } from '@react-oauth/google';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -26,6 +27,33 @@ export default function AuthSectionThree({ mode = "register" }) {
     );
     setError("");
   }, [mode]);
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API}/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: tokenResponse.access_token }),
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          setError(data.detail || "Google login failed");
+        } else {
+          localStorage.setItem("token", data.access_token);
+          navigate("/dashboard");
+        }
+      } catch (err) {
+        console.error("Google Auth Error:", err);
+        setError("Could not connect to server.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: errorResponse => setError("Google login failed")
+  });
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -92,6 +120,7 @@ export default function AuthSectionThree({ mode = "register" }) {
             <div className="mt-8 grid gap-3 sm:grid-cols-1 sm:gap-4">
               <button
                 type="button"
+                onClick={() => handleGoogleLogin()}
                 className="flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10"
                 style={{ fontFamily: 'var(--font-sans)' }}
               >

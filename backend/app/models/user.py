@@ -28,9 +28,9 @@ class User(Base):
         nullable=False
     )
 
-    password: Mapped[str] = mapped_column(
+    password: Mapped[str | None] = mapped_column(
         String(255),
-        nullable=False
+        nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(

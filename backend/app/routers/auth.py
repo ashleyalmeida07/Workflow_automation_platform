@@ -6,11 +6,15 @@ from app.models.user import User
 from auth.schemas import (
     RegisterRequest,
     LoginRequest,
+    GoogleLoginRequest,
     UserResponse,
     TokenResponse,
 )
 from auth.security import hash_password, verify_password, create_access_token
 from auth.dependencies import get_current_user
+import urllib.request
+import json
+from app.config import settings
 
 
 router = APIRouter(
@@ -74,6 +78,45 @@ def login(
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+@router.post("/google", response_model=TokenResponse)
+def google_login(
+    data: GoogleLoginRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        # Verify the Google access token by fetching user info
+        req = urllib.request.Request(f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={data.credential}")
+        with urllib.request.urlopen(req) as response:
+            idinfo = json.loads(response.read().decode())
+        
+        email = idinfo['email']
+        name = idinfo.get('name', 'Google User')
+        
+        user = db.query(User).filter(User.email == email).first()
+        
+        # If user doesn't exist, create them
+        if not user:
+            user = User(
+                name=name,
+                email=email,
+                password=None,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            
+        access_token = create_access_token(user.id)
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google token",
+        )
 
 @router.get("/profile", response_model=UserResponse)
 def profile(
