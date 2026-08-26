@@ -76,7 +76,7 @@ export default function AuthSectionThree({ mode = "register" }) {
             
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2.5 mb-8">
-              <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
+              <img src="/logo.png" className="h-8 w-auto object-contain" alt="Logo" />
             </div>
 
             <div>
@@ -221,7 +221,7 @@ export default function AuthSectionThree({ mode = "register" }) {
           <div className="relative z-10 flex flex-col h-full justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              <img src="/logo.png" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-orange-500/20" alt="Logo" />
+              <img src="/logo.png" className="h-10 w-auto object-contain drop-shadow-lg" alt="Logo" />
             </Link>
 
             {/* Content */}

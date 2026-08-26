@@ -62,7 +62,7 @@ function Hero() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between pt-5">
             <Link to="/" className="flex items-center gap-2.5">
-              <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover" alt="Logo" />
+              <img src="/logo.png" className="h-8 w-auto object-contain" alt="Logo" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-1 rounded-full bg-white/5 px-1 py-1 ring-1 ring-white/10 backdrop-blur">
@@ -419,7 +419,7 @@ function Footer() {
     <footer className="bg-[#0a0a0a] border-t border-white/[0.04] py-12 px-6">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" className="w-7 h-7 rounded-lg object-cover" alt="Logo" />
+          <img src="/logo.png" className="h-7 w-auto object-contain" alt="Logo" />
         </div>
         <div className="flex items-center gap-6">
           {['Features', 'How It Works', 'Pricing'].map(link => (

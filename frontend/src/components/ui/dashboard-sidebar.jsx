@@ -63,7 +63,7 @@ function WorkspaceSwitcher({ userName }) {
         className="flex items-center justify-between px-2 py-2 mb-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors select-none group"
       >
         <div className="flex items-center gap-3">
-          <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-md shadow-orange-500/30" alt="Logo" />
+          <img src="/logo.png" className="h-8 w-auto object-contain drop-shadow-sm" alt="Logo" />
           <div className="flex flex-col overflow-hidden">
             <span className="text-[13px] font-medium leading-none mb-1 text-white truncate max-w-[120px]">
               {userName || 'FlowForge'}
@@ -169,7 +169,7 @@ export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
     <div className="flex flex-col w-[240px] h-full bg-[#111111] border-r border-white/[0.06] p-3">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
-        <img src="/logo.png" className="w-8 h-8 rounded-lg object-cover shadow-md shadow-orange-500/30" alt="Logo" />
+        <img src="/logo.png" className="h-8 w-auto object-contain drop-shadow-sm" alt="Logo" />
       </div>
 
       <WorkspaceSwitcher userName={userName} />
