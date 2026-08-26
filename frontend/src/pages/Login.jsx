@@ -160,7 +160,7 @@ export default function Login() {
               id="login-btn"
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold text-sm text-white bg-orange-500 hover:bg-orange-400 transition-all duration-200 disabled:opacity-50 shadow-lg shadow-orange-500/20"
+              className="w-full py-3 rounded-xl font-semibold text-sm text-white bg-orange-500 hover:bg-orange-400 transition-colors disabled:opacity-50"
               style={{ fontFamily: 'var(--font-sans)' }}
             >
               {loading ? (

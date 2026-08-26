@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 @theme inline {
-  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --color-background: var(--bg-0);
   --color-foreground: var(--text-100);

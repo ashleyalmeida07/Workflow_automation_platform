@@ -14,7 +14,7 @@ function Hero() {
 
   return (
     <section className="w-full isolate min-h-screen overflow-hidden relative">
-      <img src="/hero-bg.jpg" alt="" className="w-full h-full object-cover absolute inset-0" />
+      <img src="/a.png" alt="" className="w-full h-full object-cover absolute inset-0" />
       <div className="pointer-events-none absolute inset-0 bg-black/60" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
 
@@ -100,23 +100,22 @@ function Hero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-slide-in-4">
           <Link
             to="/register"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 px-6 py-3.5 transition-all shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-white/10 px-6 py-3.5 transition-colors"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             Start for free
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/70 hover:text-white px-6 py-3.5 bg-white/5 ring-1 ring-white/10 hover:bg-white/10 backdrop-blur transition-all"
+            className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/60 hover:text-white px-6 py-3.5 transition-colors"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             Sign in
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              <polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" />
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
             </svg>
           </Link>
         </div>
@@ -307,11 +306,10 @@ function Pricing() {
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-2xl p-7 flex flex-col transition-all duration-200 relative ${
-                plan.highlighted
-                  ? 'bg-orange-500/10 border border-orange-500/30 ring-1 ring-orange-500/20'
-                  : 'bg-white/[0.02] border border-white/[0.06] hover:border-white/10'
-              }`}
+              className={`rounded-2xl p-7 flex flex-col transition-all duration-200 relative ${plan.highlighted
+                ? 'bg-orange-500/10 border border-orange-500/30 ring-1 ring-orange-500/20'
+                : 'bg-white/[0.02] border border-white/[0.06] hover:border-white/10'
+                }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -342,11 +340,10 @@ function Pricing() {
 
               <Link
                 to={plan.href}
-                className={`w-full text-center py-3 rounded-xl text-sm font-semibold transition-all ${
-                  plan.highlighted
-                    ? 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/25'
-                    : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10'
-                }`}
+                className={`w-full text-center py-3 rounded-xl text-sm font-semibold transition-colors ${plan.highlighted
+                    ? 'bg-orange-500 hover:bg-orange-400 text-white'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/[0.08]'
+                  }`}
                 style={{ fontFamily: 'var(--font-sans)' }}
               >
                 {plan.cta}
@@ -373,17 +370,17 @@ function CTABanner() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             to="/register"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 px-7 py-4 transition-all shadow-xl shadow-orange-500/25 hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-white bg-[#1c1c1c] hover:bg-[#262626] border border-white/10 px-7 py-4 transition-colors"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             Create free account
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/60 hover:text-white px-7 py-4 transition"
+            className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/40 hover:text-white/70 px-7 py-4 transition-colors"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             Already have an account? Sign in →
