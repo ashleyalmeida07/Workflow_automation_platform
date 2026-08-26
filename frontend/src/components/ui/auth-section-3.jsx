@@ -1,211 +1,275 @@
 import { useState } from "react";
-import { FlutedGlass } from "@paper-design/shaders-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
 
-const formFields = [
-  {
-    label: "First name",
-    value: "",
-    type: "text",
-    placeholder: "Jane",
-  },
-  { label: "Last name", value: "", type: "text", placeholder: "Doe" },
-];
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-const termsText = (
-  <>
-    By creating an account, you agree to our{" "}
-    <a
-      href="#"
-      className="font-medium text-black/55 underline underline-offset-2 dark:text-white/55"
-    >
-      Terms of Service
-    </a>{" "}
-    and{" "}
-    <a
-      href="#"
-      className="font-medium text-black/55 underline underline-offset-2 dark:text-white/55"
-    >
-      Privacy Policy
-    </a>
-  </>
-);
+export default function AuthSectionThree({ mode = "register" }) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState(
+    mode === "register"
+      ? { firstName: "", lastName: "", email: "", password: "" }
+      : { email: "", password: "" }
+  );
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-export default function AuthSectionThree() {
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const endpoint = mode === "register" ? "/auth/register" : "/auth/login";
+      const payload = mode === "register"
+        ? { name: `${form.firstName} ${form.lastName}`.trim(), email: form.email, password: form.password }
+        : { email: form.email, password: form.password };
+
+      const res = await fetch(`${API}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "Authentication failed");
+      } else {
+        if (mode === "login") {
+          localStorage.setItem("token", data.access_token);
+          navigate("/dashboard");
+        } else {
+          navigate("/login");
+        }
+      }
+    } catch {
+      setError("Could not connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <section className="min-h-screen bg-white p-3 text-black antialiased [font-synthesis:none] dark:bg-[#050505] dark:text-white">
+    <section className="min-h-screen bg-[#0a0a0a] p-3 text-white antialiased [font-synthesis:none]">
       <div className="grid min-h-[calc(100vh-1.5rem)] gap-6 lg:grid-cols-[0.94fr_1.06fr]">
-        {/* Left Side - SignUp Form */}
-        <div className="flex min-h-[760px] items-center justify-center rounded-md border border-black/10 bg-white px-6 py-12 dark:border-white/5 dark:bg-[#0a0a0c] lg:min-h-0 lg:px-14 lg:py-20 xl:px-20">
+        
+        {/* Left Side - Auth Form */}
+        <div className="flex min-h-[760px] items-center justify-center rounded-2xl border border-white/5 bg-[#0e0e0e] px-6 py-12 lg:min-h-0 lg:px-14 lg:py-20 xl:px-20">
           <div className="mx-auto w-full max-w-[460px]">
-            <div>
-              <h1 className="text-3xl font-medium tracking-tight sm:text-4xl text-black dark:text-white">
-                Create an account
-              </h1>
+            
+            {/* Mobile logo */}
+            <div className="flex lg:hidden items-center gap-2.5 mb-8">
+              <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </div>
+              <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
             </div>
 
-            {/* Social Signup Buttons */}
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div>
+              <h1 className="text-3xl font-medium tracking-tight sm:text-4xl text-white" style={{ fontFamily: 'var(--font-serif)' }}>
+                {mode === "register" ? "Create an account" : "Sign in to your account"}
+              </h1>
+              <p className="mt-2 text-white/40 text-sm" style={{ fontFamily: 'var(--font-sans)' }}>
+                {mode === "register" ? "Start building automations in under a minute." : "Welcome back. Enter your credentials to continue."}
+              </p>
+            </div>
+
+            {/* Social Auth */}
+            <div className="mt-8 grid gap-3 sm:grid-cols-1 sm:gap-4">
               <button
                 type="button"
-                className="flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-black/15 bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-black/[0.02] dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                className="flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                style={{ fontFamily: 'var(--font-sans)' }}
               >
                 <GoogleIcon />
-                <span className="whitespace-nowrap">Sign up with Google</span>
-              </button>
-              <button
-                type="button"
-                className="flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-black/15 bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-black/[0.02] dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-              >
-                <AppleIcon />
-                <span className="whitespace-nowrap">Sign up with Apple</span>
+                <span className="whitespace-nowrap">Continue with Google</span>
               </button>
             </div>
 
-            <div className="my-6 flex items-center gap-4 text-xs font-medium text-black/40 dark:text-white/30">
-              <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            <div className="my-6 flex items-center gap-4 text-xs font-medium text-white/30" style={{ fontFamily: 'var(--font-sans)' }}>
+              <div className="h-px flex-1 bg-white/10" />
               or
-              <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+              <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            <form className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {formFields.map((field) => (
-                  <InputField
-                    key={field.label}
-                    label={field.label}
-                    value={field.value}
-                    placeholder={field.placeholder}
-                    type={field.type}
-                  />
-                ))}
+            {error && (
+              <div className="flex items-start gap-3 bg-red-950/40 border border-red-800/50 text-red-400 text-sm rounded-xl px-4 py-3 mb-6" style={{ fontFamily: 'var(--font-sans)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                {error}
               </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {mode === "register" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <InputField
+                    label="First name"
+                    name="firstName"
+                    value={form.firstName}
+                    onChange={handleChange}
+                    placeholder="Jane"
+                  />
+                  <InputField
+                    label="Last name"
+                    name="lastName"
+                    value={form.lastName}
+                    onChange={handleChange}
+                    placeholder="Doe"
+                  />
+                </div>
+              )}
 
               <InputField
                 label="Email"
-                value=""
+                name="email"
+                value={form.email}
+                onChange={handleChange}
                 placeholder="email@example.com"
                 type="email"
               />
 
               <InputField
                 label="Password"
-                value=""
+                name="password"
+                value={form.password}
+                onChange={handleChange}
                 placeholder="Enter password"
                 type="password"
+                showForgot={mode === "login"}
               />
 
-              <div className="space-y-3 pt-2 text-xs leading-5 text-black/45 dark:text-white/40 sm:text-[13px]">
-                <CheckboxLine>
-                  I don't want to receive emails about platform feature updates
-                  and best practices.
-                </CheckboxLine>
-                <CheckboxLine>{termsText}</CheckboxLine>
-              </div>
+              {mode === "register" && (
+                <div className="space-y-3 pt-2 text-xs leading-5 text-white/40 sm:text-[13px]" style={{ fontFamily: 'var(--font-sans)' }}>
+                  <CheckboxLine>
+                    I don't want to receive emails about platform feature updates and best practices.
+                  </CheckboxLine>
+                  <CheckboxLine>
+                    By creating an account, you agree to our{" "}
+                    <a href="#" className="font-medium text-white/60 hover:text-white underline underline-offset-2">Terms of Service</a>
+                    {" "}and{" "}
+                    <a href="#" className="font-medium text-white/60 hover:text-white underline underline-offset-2">Privacy Policy</a>
+                  </CheckboxLine>
+                </div>
+              )}
 
               <button
-                type="button"
-                className="mt-8 flex h-11 w-full items-center justify-center rounded-lg border border-black/40 bg-black text-sm font-medium text-white transition-colors hover:bg-black/85 dark:border-white/40 dark:bg-white dark:text-black dark:hover:bg-white/85"
+                type="submit"
+                disabled={loading}
+                className="mt-8 flex h-11 w-full items-center justify-center rounded-lg bg-orange-500 text-sm font-semibold text-white transition-colors hover:bg-orange-400 disabled:opacity-50"
+                style={{ fontFamily: 'var(--font-sans)' }}
               >
-                Submit
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
+                    </svg>
+                    Please wait...
+                  </span>
+                ) : (
+                  mode === "register" ? "Create Account" : "Sign In"
+                )}
               </button>
             </form>
+
+            <p className="mt-8 text-center text-sm text-white/40" style={{ fontFamily: 'var(--font-sans)' }}>
+              {mode === "register" ? "Already have an account? " : "Don't have an account? "}
+              <Link 
+                to={mode === "register" ? "/login" : "/register"} 
+                className="font-medium text-orange-400 hover:text-orange-300 transition-colors"
+              >
+                {mode === "register" ? "Sign in" : "Sign up"}
+              </Link>
+            </p>
           </div>
         </div>
 
-        {/* Right Side - Marketing Testimonial and Mockup */}
-        <div className="relative flex min-h-[720px] flex-col overflow-hidden rounded-md bg-gradient-to-b from-black to-white p-8 text-white dark:to-[#050505] sm:p-12 lg:min-h-0 lg:p-16">
-          {/* Background Shader */}
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <FlutedGlass
-              size={0.89}
-              shape="lines"
-              angle={0}
-              distortionShape="prism"
-              distortion={0.5}
-              shift={0}
-              blur={0}
-              edges={0.25}
-              stretch={0}
-              scale={1.11}
-              fit="cover"
-              highlights={0.1}
-              shadows={0.2}
-              grainMixer={0.1}
-              grainOverlay={0.1}
-              colorBack="#00000000"
-              colorHighlight="#FFFFFF"
-              colorShadow="#000000"
-              className="w-full h-full bg-transparent"
-            />
-          </div>
+        {/* Right Side - Orange Branding Theme */}
+        <div className="relative hidden lg:flex min-h-[720px] flex-col overflow-hidden rounded-2xl bg-[#0a0a0a] p-8 text-white sm:p-12 lg:min-h-0 lg:p-16 border border-white/5">
+          
+          {/* Grid overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.05]"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(249,115,22,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.5) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+          
+          {/* Glow blobs */}
+          <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full blur-[100px] opacity-20"
+            style={{ background: 'radial-gradient(circle, #f97316, transparent)' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full blur-[80px] opacity-15"
+            style={{ background: 'radial-gradient(circle, #fb923c, transparent)' }} />
 
-          <div className="relative z-10 h-full w-full">
-            <div className="max-w-[460px] lg:pt-12">
-              <motion.div
-                initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-center gap-4"
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </div>
+              <span className="text-white font-bold text-2xl tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>FlowForge</span>
+            </Link>
+
+            {/* Content */}
+            <div className="max-w-[460px]">
+              <motion.h2 
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className="text-4xl sm:text-5xl font-medium leading-tight text-white mb-6"
+                style={{ fontFamily: 'var(--font-serif)' }}
               >
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=256&auto=format&fit=crop"
-                  alt="Charlotte"
-                  className="size-10 shrink-0 rounded-full border border-white/20 object-cover"
-                />
-                <div>
-                  <div className="font-semibold leading-tight text-white">
-                    Charlotte
+                Automate your<br />
+                <span className="text-orange-400">workflows</span> visually
+              </motion.h2>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                className="text-white/40 text-lg leading-relaxed mb-10" 
+                style={{ fontFamily: 'var(--font-sans)' }}
+              >
+                Connect apps, trigger actions, and build powerful automations — all without writing a single line of code.
+              </motion.p>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className="space-y-4"
+              >
+                {[
+                  'Drag-and-drop workflow builder', 
+                  'Real-time execution logs', 
+                  'Secure JWT authentication'
+                ].map((f) => (
+                  <div key={f} className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-orange-500/15 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                    <span className="text-white/70 text-sm font-medium" style={{ fontFamily: 'var(--font-sans)' }}>{f}</span>
                   </div>
-                  <div className="mt-0.5 text-xs text-white/60">
-                    Design Engineer
-                  </div>
-                </div>
+                ))}
               </motion.div>
-              <motion.blockquote
-                initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{
-                  duration: 0.8,
-                  delay: 0.12,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="mt-7 text-2xl font-light leading-tight tracking-[-0.035em] text-white/90 sm:text-3xl lg:text-[34px]"
-              >
-                “Every block had the restraint and polish we usually spend weeks
-                refining.”
-              </motion.blockquote>
             </div>
 
-            <div className="mt-10 w-full translate-y-[24%] overflow-hidden rounded-2xl border border-white/15 bg-black/70 p-2 shadow-[0_30px_90px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:translate-y-[22%] lg:absolute lg:left-[12%] lg:-bottom-28 lg:mt-0 lg:w-[105%] lg:max-w-none lg:origin-bottom-left lg:translate-y-0 lg:-rotate-3 xl:left-[14%] xl:-bottom-[150px] xl:w-[108%] 2xl:-bottom-[170px] 2xl:w-[112%]">
-              <motion.div
-                initial={{ opacity: 0, y: 72, filter: "blur(10px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{
-                  duration: 1,
-                  delay: 0.22,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="overflow-hidden rounded-xl border border-white/10 bg-black"
-              >
-                <div className="flex items-center gap-1.5 border-b border-white/10 bg-black/40 px-4 py-3 select-none">
-                  <div className="size-2 rounded-full bg-white/35" />
-                  <div className="size-2 rounded-full bg-white/25" />
-                  <div className="size-2 rounded-full bg-white/15" />
-                  <span className="ml-4 text-[9px] font-mono tracking-wider text-white/40">
-                    flowforge.com/dashboard
-                  </span>
-                </div>
-                <img
-                  src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2000&auto=format&fit=crop"
-                  alt="Dashboard App Mockup"
-                  className="h-auto w-full object-cover object-top opacity-95 [filter:invert(1)_hue-rotate(180deg)_brightness(0.68)_contrast(1.16)] dark:[filter:none]"
-                />
-              </motion.div>
+            {/* Footer */}
+            <div className="mt-12 text-white/20 text-xs" style={{ fontFamily: 'var(--font-sans)' }}>
+              © 2026 FlowForge. All rights reserved.
             </div>
           </div>
         </div>
@@ -216,49 +280,42 @@ export default function AuthSectionThree() {
 
 function InputField({
   label,
+  name,
   placeholder,
   type = "text",
   value,
+  onChange,
+  showForgot = false,
 }) {
-  const [val, setVal] = useState(value);
   const [showPassword, setShowPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <div className="space-y-1.5 text-left w-full">
-      <label className="text-xs font-semibold text-black/60 dark:text-white/60">
-        {label}
-      </label>
-      <div className="relative flex h-11 items-center rounded-lg border border-black/15 bg-white px-3.5 dark:border-white/10 dark:bg-white/5">
+    <div className="space-y-1.5 text-left w-full" style={{ fontFamily: 'var(--font-sans)' }}>
+      <div className="flex justify-between items-center">
+        <label className="text-xs font-semibold text-white/60">
+          {label}
+        </label>
+        {showForgot && (
+          <span className="text-orange-400/80 text-xs cursor-pointer hover:text-orange-400 transition">Forgot password?</span>
+        )}
+      </div>
+      <div className="relative flex h-11 items-center rounded-lg border border-white/10 bg-white/5 px-3.5 focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/50 transition-all">
         <input
-          type={
-            type === "password" ? (showPassword ? "text" : "password") : type
-          }
-          value={val}
-          onFocus={() => {
-            if (!isEditing) {
-              setVal("");
-              setIsEditing(true);
-            }
-          }}
-          onChange={(e) => {
-            setVal(e.target.value);
-            setIsEditing(true);
-          }}
+          type={type === "password" ? (showPassword ? "text" : "password") : type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required
           placeholder={placeholder}
-          className="w-full bg-transparent text-sm text-black outline-none placeholder:text-black/30 dark:text-white dark:placeholder:text-white/30"
+          className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20"
         />
         {type === "password" && (
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white cursor-pointer"
+            className="absolute right-3.5 text-white/40 hover:text-white cursor-pointer"
           >
-            {showPassword ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         )}
       </div>
@@ -269,24 +326,17 @@ function InputField({
 function CheckboxLine({ children }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer">
-      <span className="relative mt-1 size-3.5 shrink-0">
+      <span className="relative mt-0.5 size-4 shrink-0">
         <input
           type="checkbox"
-          className="peer size-full cursor-pointer appearance-none rounded-[3px] border border-black/25 bg-white checked:border-black checked:bg-black dark:border-white/30 dark:bg-white/5 dark:checked:border-white dark:checked:bg-white"
+          className="peer size-full cursor-pointer appearance-none rounded-[4px] border border-white/20 bg-white/5 checked:border-orange-500 checked:bg-orange-500 transition-colors"
         />
         <svg
           viewBox="0 0 12 12"
-          className="pointer-events-none absolute inset-0 hidden size-full p-0.5 text-white peer-checked:block dark:text-black"
+          className="pointer-events-none absolute inset-0 hidden size-full p-0.5 text-white peer-checked:block"
           fill="none"
-          aria-hidden="true"
         >
-          <path
-            d="M3 6.2 5 8.1 9 3.9"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M3 6.2 5 8.1 9 3.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
       <span>{children}</span>
@@ -296,44 +346,11 @@ function CheckboxLine({ children }) {
 
 function GoogleIcon() {
   return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84Z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"
-        fill="#EB4335"
-      />
-    </svg>
-  );
-}
-
-function AppleIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path d="M17.05 12.54c-.03-3.02 2.47-4.47 2.58-4.54-1.41-2.06-3.6-2.34-4.38-2.37-1.86-.19-3.64 1.1-4.58 1.1-.95 0-2.42-1.07-3.98-1.04-2.05.03-3.94 1.19-4.99 3.02-2.13 3.69-.54 9.16 1.53 12.15 1.01 1.46 2.22 3.1 3.81 3.04 1.53-.06 2.11-.99 3.96-.99s2.37.99 3.99.96c1.65-.03 2.69-1.49 3.69-2.96 1.16-1.69 1.64-3.33 1.66-3.41-.04-.02-3.2-1.23-3.24-4.87ZM14.03 3.66c.84-1.02 1.41-2.43 1.25-3.84-1.21.05-2.68.81-3.55 1.83-.78.9-1.46 2.34-1.28 3.72 1.35.1 2.73-.69 3.58-1.71Z" />
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
+      <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84Z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z" fill="#EB4335" />
     </svg>
   );
 }
