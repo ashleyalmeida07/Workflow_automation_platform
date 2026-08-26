@@ -76,29 +76,13 @@ export default function Register() {
             in <span className="text-indigo-400">minutes</span>
           </h2>
           <p className="text-gray-400 text-base leading-relaxed max-w-sm">
-            Join thousands of teams automating their processes with FlowForge. No credit card required.
+            Automate your processes with FlowForge. No credit card required.
           </p>
 
-          {/* Stats */}
-          <div className="flex gap-8 pt-2">
-            {[
-              { value: '10k+', label: 'Workflows created' },
-              { value: '200+', label: 'Integrations' },
-              { value: '99.9%', label: 'Uptime' },
-            ].map((s) => (
-              <div key={s.label}>
-                <div className="text-white font-bold text-xl">{s.value}</div>
-                <div className="text-gray-500 text-xs mt-0.5">{s.label}</div>
-              </div>
-            ))}
-          </div>
+
         </div>
 
-        {/* Bottom card */}
-        <div className="relative z-10 border border-white/10 rounded-xl p-4 bg-white/5 backdrop-blur-sm">
-          <p className="text-gray-300 text-sm italic">"We replaced 3 internal tools with a single FlowForge workflow."</p>
-          <p className="text-gray-500 text-xs mt-1">— Product team</p>
-        </div>
+
       </div>
 
       {/* Right form panel */}
