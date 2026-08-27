@@ -1,17 +1,3 @@
-"""
-Workflow CRUD Router
-====================
-All endpoints require a valid JWT (Bearer token).
-Workflows are stored as JSON in the `workflow_json` column:
-  { "nodes": [], "edges": [] }
-
-Routes:
-  POST   /workflows/          → Create a new workflow
-  GET    /workflows/          → List all workflows for the current user
-  GET    /workflows/{id}      → Get a single workflow
-  PUT    /workflows/{id}      → Update name, description, or JSON
-  DELETE /workflows/{id}      → Delete a workflow
-"""
 
 from datetime import datetime, timezone
 
