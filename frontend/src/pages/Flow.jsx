@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   ReactFlow,
   MiniMap,
@@ -11,7 +11,16 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  }
+}
 
 let id = 0;
 const getId = () => `dndnode_${id++}`;
@@ -83,11 +92,86 @@ function Sidebar() {
   );
 }
 
-function FlowCanvas() {
+function Topbar({ workflowId }) {
+  const { getNodes, getEdges } = useReactFlow()
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!workflowId) return
+    setSaving(true)
+    try {
+      const nodes = getNodes()
+      const edges = getEdges()
+      const res = await fetch(`${API}/workflows/${workflowId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          workflow_json: { nodes, edges },
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+    } catch (err) {
+      console.error(err)
+      alert('Error saving workflow')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="h-14 border-b border-white/[0.06] flex items-center px-4 shrink-0 bg-[#0a0a0a] justify-between z-10 relative">
+      <Link
+        to="/dashboard"
+        className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-sm font-medium flex items-center gap-2"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Back to Dashboard
+      </Link>
+      
+      <div className="flex items-center gap-2">
+        <div className="w-5 h-5 rounded bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        </div>
+        <div className="text-white font-semibold text-sm">
+          Flow Editor
+        </div>
+      </div>
+
+      <div className="w-[150px] flex justify-end">
+        <button 
+          onClick={handleSave}
+          disabled={saving || !workflowId}
+          className="px-4 py-1.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20 disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Workflow'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function FlowCanvas({ workflowId }) {
   const reactFlowWrapper = useRef(null)
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const { screenToFlowPosition } = useReactFlow()
+
+  useEffect(() => {
+    if (!workflowId) return
+    fetch(`${API}/workflows/${workflowId}`, { headers: authHeaders() })
+      .then(res => res.json())
+      .then(data => {
+        if (data.workflow_json) {
+          setNodes(data.workflow_json.nodes || [])
+          setEdges(data.workflow_json.edges || [])
+        }
+      })
+      .catch(err => console.error(err))
+  }, [workflowId, setNodes, setEdges])
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -160,45 +244,18 @@ function FlowCanvas() {
 }
 
 export default function Flow() {
+  const location = useLocation()
+  const workflowId = location.state?.workflowId
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0a0a0a]">
-      {/* Topbar */}
-      <div className="h-14 border-b border-white/[0.06] flex items-center px-4 shrink-0 bg-[#0a0a0a] justify-between z-10 relative">
-        <Link
-          to="/dashboard"
-          className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-sm font-medium flex items-center gap-2"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Back to Dashboard
-        </Link>
-        
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
-          <div className="text-white font-semibold text-sm">
-            Flow Editor
-          </div>
-        </div>
-
-        <div className="w-[150px] flex justify-end">
-          <button className="px-4 py-1.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20">
-            Save Workflow
-          </button>
-        </div>
-      </div>
-      
-      {/* Editor Body */}
-      <div className="flex-1 flex overflow-hidden">
-        <ReactFlowProvider>
+      <ReactFlowProvider>
+        <Topbar workflowId={workflowId} />
+        <div className="flex-1 flex overflow-hidden">
           <Sidebar />
-          <FlowCanvas />
-        </ReactFlowProvider>
-      </div>
+          <FlowCanvas workflowId={workflowId} />
+        </div>
+      </ReactFlowProvider>
     </div>
   )
 }
