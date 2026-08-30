@@ -22,7 +22,7 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register")
 def register(
     data: RegisterRequest,
     db: Session = Depends(get_db),
@@ -49,9 +49,16 @@ def register(
     db.commit()
     db.refresh(user)
 
-    return user
+    # Return a token immediately so the user lands on the dashboard
+    # without needing a separate login step.
+    access_token = create_access_token(user.id)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "name": user.name,
+    }
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 def login(
     data: LoginRequest,
     db: Session = Depends(get_db),
@@ -77,6 +84,7 @@ def login(
     return {
         "access_token": access_token,
         "token_type": "bearer",
+        "name": user.name,
     }
 
 @router.post("/google", response_model=TokenResponse)

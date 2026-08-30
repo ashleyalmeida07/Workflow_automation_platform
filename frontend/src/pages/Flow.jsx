@@ -1,25 +1,22 @@
 /*
-  Flow.jsx – the main workflow editor page.
+  Flow.jsx – visual workflow editor
 
-  Layout:
-    ┌─────────────┬──────────────────────────────┬──────────────────┐
-    │  Topbar (save / run)                                           │
-    ├─────────────┼──────────────────────────────┼──────────────────┤
-    │  Sidebar    │   React-Flow canvas          │  Config Panel    │
-    │  (node lib) │                              │  (when selected) │
-    └─────────────┴──────────────────────────────┴──────────────────┘
-
-  State:
-    - nodes / edges  – React-Flow state
-    - selectedNode   – which node is selected (drives config panel)
-    - nodeTypes      – fetched from GET /node-types
-    - running        – true while /execute is in-flight
-    - execResult     – last execution result (shown in floating panel)
+  Architecture (simple, explicit):
+  ─────────────────────────────────
+  Flow (root)
+    ├─ holds: nodes, edges, nodeTypes, selectedNode, running, execResult
+    ├─ Topbar        – save / run buttons
+    ├─ Sidebar       – draggable node cards loaded from /node-types
+    ├─ FlowCanvas    – React-Flow canvas; receives nodes/edges as props,
+    │                  calls setNodes/setEdges on changes
+    ├─ NodeConfigPanel – config panel for selected node (right side)
+    └─ ExecutionResultPanel – floating result overlay after a run
 */
 
 import { useCallback, useRef, useEffect, useState } from 'react'
 import {
   ReactFlow,
+  ReactFlowProvider,
   MiniMap,
   Controls,
   Background,
@@ -27,13 +24,12 @@ import {
   useEdgesState,
   addEdge,
   useReactFlow,
-  ReactFlowProvider,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Link, useLocation } from 'react-router-dom'
 
-import WorkflowNode        from '../components/WorkflowNode'
-import NodeConfigPanel     from '../components/NodeConfigPanel'
+import WorkflowNode         from '../components/WorkflowNode'
+import NodeConfigPanel      from '../components/NodeConfigPanel'
 import ExecutionResultPanel from '../components/ExecutionResultPanel'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -45,21 +41,13 @@ function authHeaders() {
   }
 }
 
-let nodeCounter = 100
-const nextId = () => `node_${nodeCounter++}`
-
-// React-Flow needs a stable nodeTypes map (defined outside component)
-const RF_NODE_TYPES = { workflowNode: WorkflowNode }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sidebar – shows available node types fetched from the backend
-// ─────────────────────────────────────────────────────────────────────────────
-const COLOR_CLASSES = {
-  orange: 'border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20',
-  blue:   'border-blue-500/30   bg-blue-500/10   text-blue-400   hover:bg-blue-500/20',
-  yellow: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20',
-  green:  'border-green-500/30  bg-green-500/10  text-green-400  hover:bg-green-500/20',
-  purple: 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20',
+// Node-type → color mapping (matches node_types.py "color" field)
+const SIDEBAR_COLORS = {
+  orange: 'border-orange-500/40 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20',
+  blue:   'border-blue-500/40   bg-blue-500/10   text-blue-400   hover:bg-blue-500/20',
+  yellow: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20',
+  green:  'border-green-500/40  bg-green-500/10  text-green-400  hover:bg-green-500/20',
+  purple: 'border-purple-500/40 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20',
 }
 
 const ICONS = {
@@ -70,57 +58,84 @@ const ICONS = {
   end:          '⏹',
 }
 
+// Stable map given to ReactFlow (must live outside component to avoid re-render loops)
+const RF_NODE_TYPES = { workflowNode: WorkflowNode }
+
+let _nodeId = 0
+const newId  = () => `n_${Date.now()}_${_nodeId++}`
+
+// ─────────────────────────────────────────────
+// Sidebar
+// ─────────────────────────────────────────────
 function Sidebar({ nodeTypes }) {
-  const onDragStart = (event, engineType, typeDef) => {
-    event.dataTransfer.setData('app/engineType', engineType)
-    event.dataTransfer.setData('app/label',      typeDef.name)
-    event.dataTransfer.setData('app/color',      typeDef.color || 'blue')
-    event.dataTransfer.effectAllowed = 'move'
+  const onDragStart = (e, engineType, def) => {
+    // Store the type info so the canvas can read it on drop
+    e.dataTransfer.setData('flow/engineType', engineType)
+    e.dataTransfer.setData('flow/label',      def.name)
+    e.dataTransfer.setData('flow/color',      def.color || 'blue')
+    e.dataTransfer.effectAllowed = 'move'
   }
 
-  return (
-    <aside className="w-56 bg-[#111] border-r border-white/[0.06] p-4 flex flex-col gap-2.5 h-full overflow-y-auto shrink-0">
-      <div className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">Nodes</div>
+  const entries = Object.entries(nodeTypes)
 
-      {Object.entries(nodeTypes).map(([key, def]) => {
-        const colorCls = COLOR_CLASSES[def.color] || COLOR_CLASSES.blue
+  return (
+    <aside className="w-56 bg-[#111] border-r border-white/[0.06] p-3 flex flex-col gap-2 h-full overflow-y-auto shrink-0">
+      <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest py-1 px-1">
+        Nodes
+      </p>
+
+      {entries.length === 0 && (
+        <p className="text-white/20 text-xs px-1 italic">Loading…</p>
+      )}
+
+      {entries.map(([key, def]) => {
+        const cls = SIDEBAR_COLORS[def.color] || SIDEBAR_COLORS.blue
         return (
           <div
             key={key}
             draggable
             onDragStart={e => onDragStart(e, key, def)}
-            className={`p-2.5 border rounded-xl text-sm font-medium cursor-grab transition-colors flex items-center gap-2.5 ${colorCls}`}
+            className={`p-2.5 border rounded-xl text-sm font-medium cursor-grab
+              active:cursor-grabbing transition-colors flex items-start gap-2.5 ${cls}`}
           >
-            <span className="text-base">{ICONS[key] || '●'}</span>
+            <span className="text-base mt-0.5">{ICONS[key] || '●'}</span>
             <div>
-              <div>{def.name}</div>
-              <div className="text-[10px] opacity-50 font-normal">{def.description}</div>
+              <div className="leading-tight">{def.name}</div>
+              <div className="text-[10px] opacity-50 font-normal leading-snug mt-0.5">
+                {def.description}
+              </div>
             </div>
           </div>
         )
       })}
+
+      <div className="mt-2 p-3 bg-white/5 rounded-xl border border-white/10">
+        <p className="text-white/30 text-[10px] leading-relaxed">
+          Drag nodes onto the canvas. Click a node to configure it. Connect nodes by dragging between handles.
+        </p>
+      </div>
     </aside>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // Topbar
-// ─────────────────────────────────────────────────────────────────────────────
-function Topbar({ workflowId, running, onRun }) {
-  const { getNodes, getEdges } = useReactFlow()
+// ─────────────────────────────────────────────
+function Topbar({ workflowId, running, onRun, getFlowState }) {
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
     if (!workflowId) return
     setSaving(true)
     try {
+      const { nodes, edges } = getFlowState()
       const res = await fetch(`${API}/workflows/${workflowId}`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify({ workflow_json: { nodes: getNodes(), edges: getEdges() } }),
+        body: JSON.stringify({ workflow_json: { nodes, edges } }),
       })
-      if (!res.ok) throw new Error('Failed to save')
-    } catch (err) {
+      if (!res.ok) throw new Error('Failed')
+    } catch {
       alert('Error saving workflow')
     } finally {
       setSaving(false)
@@ -128,48 +143,56 @@ function Topbar({ workflowId, running, onRun }) {
   }
 
   return (
-    <div className="h-14 border-b border-white/[0.06] flex items-center px-4 shrink-0 bg-[#0a0a0a] justify-between z-10 relative">
+    <div className="h-14 border-b border-white/[0.06] flex items-center px-4 shrink-0
+      bg-[#0a0a0a] justify-between z-10 relative">
+
       <Link to="/dashboard"
-        className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg hover:bg-white/10 transition-colors text-sm font-medium flex items-center gap-2">
+        className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg
+          hover:bg-white/10 transition-colors text-sm font-medium flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
         Dashboard
       </Link>
 
-      <div className="text-white font-semibold text-sm">Flow Editor</div>
+      <span className="text-white font-semibold text-sm">Flow Editor</span>
 
       <div className="flex items-center gap-2">
         <button onClick={handleSave} disabled={saving || !workflowId}
-          className="px-4 py-1.5 bg-white/5 border border-white/10 text-white/80 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors disabled:opacity-40">
+          className="px-4 py-1.5 bg-white/5 border border-white/10 text-white/80 text-sm
+            font-medium rounded-lg hover:bg-white/10 transition-colors disabled:opacity-40">
           {saving ? 'Saving…' : 'Save'}
         </button>
 
         <button onClick={onRun} disabled={running || !workflowId}
-          className="px-4 py-1.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20 disabled:opacity-50 flex items-center gap-1.5">
+          className="px-4 py-1.5 bg-orange-500 text-white text-sm font-semibold rounded-lg
+            hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20
+            disabled:opacity-50 flex items-center gap-1.5">
           {running
-            ? <><span className="animate-spin text-base">⟳</span> Running…</>
-            : <><span>▶</span> Run</>}
+            ? <><span className="inline-block animate-spin">⟳</span> Running…</>
+            : <>▶ Run</>}
         </button>
       </div>
     </div>
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FlowCanvas
-// ─────────────────────────────────────────────────────────────────────────────
-function FlowCanvas({ workflowId, nodeTypes, onNodeSelect, onNodesUpdated }) {
-  const wrapper = useRef(null)
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+// ─────────────────────────────────────────────
+// FlowCanvas  (inner — needs useReactFlow hook)
+// ─────────────────────────────────────────────
+function FlowCanvasInner({
+  workflowId,
+  nodeTypes,
+  nodes, setNodes,
+  edges, setEdges,
+  onNodesChange, onEdgesChange,
+  onNodeSelect,
+}) {
   const { screenToFlowPosition } = useReactFlow()
-  const [contextMenu, setContextMenu] = useState(null)
+  const wrapperRef = useRef(null)
+  const [ctxMenu, setCtxMenu] = useState(null)
 
-  // expose nodes/edges updater to parent
-  useEffect(() => { onNodesUpdated?.(nodes, edges) }, [nodes, edges])
-
-  // load workflow
+  // Load saved workflow on mount
   useEffect(() => {
     if (!workflowId) return
     fetch(`${API}/workflows/${workflowId}`, { headers: authHeaders() })
@@ -183,76 +206,71 @@ function FlowCanvas({ workflowId, nodeTypes, onNodeSelect, onNodesUpdated }) {
       .catch(console.error)
   }, [workflowId])
 
-  const onConnect = useCallback(
-    params => setEdges(eds => addEdge({ ...params, animated: true }, eds)),
-    [setEdges]
-  )
-
-  const onDragOver = useCallback(event => {
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
+  // ── Drag & Drop ──────────────────────────────────────────────────────
+  const onDragOver = useCallback(e => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
   }, [])
 
-  const onDrop = useCallback(event => {
-    event.preventDefault()
-    const engineType = event.dataTransfer.getData('app/engineType')
-    const label      = event.dataTransfer.getData('app/label')
-    const color      = event.dataTransfer.getData('app/color')
-    if (!engineType) return
+  const onDrop = useCallback(e => {
+    e.preventDefault()
 
-    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
-    const typeDef  = nodeTypes[engineType] || {}
+    const engineType = e.dataTransfer.getData('flow/engineType')
+    const label      = e.dataTransfer.getData('flow/label')
+    const color      = e.dataTransfer.getData('flow/color')
 
-    // seed default settings
+    if (!engineType) return   // not one of our drags
+
+    // Convert screen coordinates to ReactFlow canvas coordinates
+    const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+
+    // Seed default settings values from the type definition
+    const typeDef = nodeTypes[engineType] || {}
     const defaultSettings = {}
     for (const [k, def] of Object.entries(typeDef.settings || {})) {
       defaultSettings[k] = def.default ?? ''
     }
 
     const newNode = {
-      id:   nextId(),
-      type: 'workflowNode',
+      id:   newId(),
+      type: 'workflowNode',          // maps to our WorkflowNode component
       position,
       data: {
-        label:       label,
+        label,
         engine_type: engineType,
-        color:       color,
-        settings:    defaultSettings,
+        color,
+        settings: defaultSettings,
       },
     }
-    setNodes(nds => nds.concat(newNode))
+
+    setNodes(nds => [...nds, newNode])
   }, [screenToFlowPosition, setNodes, nodeTypes])
 
-  const onNodeClick = useCallback((_, node) => onNodeSelect(node), [onNodeSelect])
-  const onPaneClick = useCallback(() => {
-    onNodeSelect(null)
-    setContextMenu(null)
-  }, [onNodeSelect])
+  // ── Edges ────────────────────────────────────────────────────────────
+  const onConnect = useCallback(
+    params => setEdges(eds => addEdge({ ...params, animated: true }, eds)),
+    [setEdges],
+  )
 
-  const onNodeContextMenu = useCallback((event, node) => {
-    event.preventDefault()
-    setContextMenu({ id: node.id, x: event.clientX, y: event.clientY })
+  // ── Selection ────────────────────────────────────────────────────────
+  const onNodeClick   = useCallback((_, node) => onNodeSelect(node), [onNodeSelect])
+  const onPaneClick   = useCallback(() => { onNodeSelect(null); setCtxMenu(null) }, [onNodeSelect])
+
+  // ── Context menu (right-click to delete) ─────────────────────────────
+  const onNodeContextMenu = useCallback((e, node) => {
+    e.preventDefault()
+    setCtxMenu({ id: node.id, x: e.clientX, y: e.clientY })
   }, [])
 
   const deleteNode = useCallback(id => {
     setNodes(nds => nds.filter(n => n.id !== id))
     setEdges(eds => eds.filter(e => e.source !== id && e.target !== id))
-    setContextMenu(null)
     onNodeSelect(null)
+    setCtxMenu(null)
   }, [setNodes, setEdges, onNodeSelect])
 
-  // update a node's settings from the config panel
-  const updateNodeSettings = useCallback((nodeId, newSettings) => {
-    setNodes(nds => nds.map(n =>
-      n.id === nodeId ? { ...n, data: { ...n.data, settings: newSettings } } : n
-    ))
-  }, [setNodes])
-
-  // expose updater via ref trick
-  FlowCanvas.updateNodeSettings = updateNodeSettings
-
   return (
-    <div className="flex-1 h-full relative" ref={wrapper}>
+    <div ref={wrapperRef} className="flex-1 h-full relative">
       <ReactFlow
         nodeTypes={RF_NODE_TYPES}
         nodes={nodes}
@@ -271,11 +289,15 @@ function FlowCanvas({ workflowId, nodeTypes, onNodeSelect, onNodesUpdated }) {
         deleteKeyCode={['Backspace', 'Delete']}
       >
         <Controls className="bg-[#1a1a1a] border-white/10" />
-        <MiniMap zoomable pannable
+        <MiniMap
+          zoomable pannable
           nodeColor={n => {
             const c = n.data?.color
-            return c === 'orange' ? '#f97316' : c === 'purple' ? '#a855f7'
-                 : c === 'green'  ? '#22c55e' : c === 'yellow' ? '#eab308' : '#3b82f6'
+            if (c === 'orange') return '#f97316'
+            if (c === 'purple') return '#a855f7'
+            if (c === 'green')  return '#22c55e'
+            if (c === 'yellow') return '#eab308'
+            return '#3b82f6'
           }}
           style={{ backgroundColor: '#111' }}
           maskColor="rgba(0,0,0,0.7)"
@@ -283,17 +305,17 @@ function FlowCanvas({ workflowId, nodeTypes, onNodeSelect, onNodesUpdated }) {
         <Background variant="dots" gap={16} size={1} color="#333" />
       </ReactFlow>
 
-      {/* right-click context menu */}
-      {contextMenu && (
+      {/* Right-click context menu */}
+      {ctxMenu && (
         <div
-          style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 50 }}
-          className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl py-1 text-sm min-w-[140px]"
+          style={{ position: 'fixed', top: ctxMenu.y, left: ctxMenu.x, zIndex: 999 }}
+          className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl py-1 min-w-[140px]"
         >
           <button
-            onClick={() => deleteNode(contextMenu.id)}
-            className="w-full text-left px-3 py-2 text-red-400 hover:bg-white/5"
+            onClick={() => deleteNode(ctxMenu.id)}
+            className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-white/5"
           >
-            Delete node
+            🗑 Delete node
           </button>
         </div>
       )}
@@ -301,48 +323,55 @@ function FlowCanvas({ workflowId, nodeTypes, onNodeSelect, onNodesUpdated }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Root export
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Root component
+// ─────────────────────────────────────────────
 export default function Flow() {
   const location   = useLocation()
   const workflowId = location.state?.workflowId
 
-  const [nodeTypes,     setNodeTypes]     = useState({})
-  const [selectedNode,  setSelectedNode]  = useState(null)
-  const [running,       setRunning]       = useState(false)
-  const [execResult,    setExecResult]    = useState(null)
+  // ── Shared state (lifted here so Topbar + ConfigPanel can both access) ─
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  // current nodes/edges (kept in sync by FlowCanvas)
-  const latestNodesRef = useRef([])
-  const latestEdgesRef = useRef([])
+  const [nodeTypes,    setNodeTypes]    = useState({})
+  const [selectedNode, setSelectedNode] = useState(null)
+  const [running,      setRunning]      = useState(false)
+  const [execResult,   setExecResult]   = useState(null)
 
-  // fetch node-types catalogue once
+  // ── Load node-types catalogue (no auth needed) ─────────────────────────
   useEffect(() => {
-    fetch(`${API}/node-types/`, { headers: authHeaders() })
-      .then(r => r.json())
+    fetch(`${API}/node-types/`)
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load node types')
+        return r.json()
+      })
       .then(setNodeTypes)
-      .catch(console.error)
+      .catch(err => console.error('node-types fetch failed:', err))
   }, [])
 
-  // update a selected node's settings
-  const handleSettingsUpdate = (nodeId, newSettings) => {
-    FlowCanvas.updateNodeSettings?.(nodeId, newSettings)
-    // also update selectedNode so the panel re-renders
+  // ── Config panel: update a node's settings ─────────────────────────────
+  const handleSettingsUpdate = useCallback((nodeId, newSettings) => {
+    setNodes(nds => nds.map(n =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, settings: newSettings } }
+        : n
+    ))
+    // Keep the panel in sync too
     setSelectedNode(prev =>
       prev?.id === nodeId
         ? { ...prev, data: { ...prev.data, settings: newSettings } }
         : prev
     )
-  }
+  }, [setNodes])
 
-  // run the workflow
+  // ── Run the workflow ───────────────────────────────────────────────────
   const handleRun = async () => {
     if (!workflowId) return
     setRunning(true)
     setExecResult(null)
     try {
-      const res = await fetch(`${API}/workflows/${workflowId}/execute`, {
+      const res  = await fetch(`${API}/workflows/${workflowId}/execute`, {
         method: 'POST',
         headers: authHeaders(),
       })
@@ -355,24 +384,33 @@ export default function Flow() {
     }
   }
 
+  // Topbar needs to read current nodes/edges without a closure stale-state issue
+  const getFlowState = useCallback(() => ({ nodes, edges }), [nodes, edges])
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0a0a0a]">
       <ReactFlowProvider>
-        <Topbar workflowId={workflowId} running={running} onRun={handleRun} />
+        <Topbar
+          workflowId={workflowId}
+          running={running}
+          onRun={handleRun}
+          getFlowState={getFlowState}
+        />
 
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden">
           <Sidebar nodeTypes={nodeTypes} />
 
-          <FlowCanvas
+          <FlowCanvasInner
             workflowId={workflowId}
             nodeTypes={nodeTypes}
+            nodes={nodes}         setNodes={setNodes}
+            edges={edges}         setEdges={setEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
             onNodeSelect={setSelectedNode}
-            onNodesUpdated={(n, e) => {
-              latestNodesRef.current = n
-              latestEdgesRef.current = e
-            }}
           />
 
+          {/* Config panel – only shown when a node is selected */}
           {selectedNode && (
             <NodeConfigPanel
               node={selectedNode}
@@ -381,14 +419,15 @@ export default function Flow() {
               onClose={() => setSelectedNode(null)}
             />
           )}
-
-          {execResult && (
-            <ExecutionResultPanel
-              result={execResult}
-              onClose={() => setExecResult(null)}
-            />
-          )}
         </div>
+
+        {/* Execution result overlay */}
+        {execResult && (
+          <ExecutionResultPanel
+            result={execResult}
+            onClose={() => setExecResult(null)}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   )

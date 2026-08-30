@@ -183,7 +183,11 @@ function WorkflowCard({ wf, onEdit, onDelete, onOpen }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
+  // Seed with cached name instantly so sidebar doesn't flash "..." on every load
+  const [user, setUser] = useState(() => {
+    const cached = localStorage.getItem('userName')
+    return cached ? { name: cached } : null
+  })
   const [workflows, setWorkflows] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -200,16 +204,19 @@ export default function Dashboard() {
       fetch(`${API}/workflows/`, { headers: authHeaders() }),
     ])
       .then(async ([uRes, wRes]) => {
-        if (uRes.status === 401) { localStorage.removeItem('token'); navigate('/login'); return }
+        if (uRes.status === 401) { localStorage.removeItem('token'); localStorage.removeItem('userName'); navigate('/login'); return }
         const [userData, workflowData] = await Promise.all([uRes.json(), wRes.json()])
         setUser(userData)
+        // Keep cache in sync
+        if (userData?.name) localStorage.setItem('userName', userData.name)
         setWorkflows(Array.isArray(workflowData) ? workflowData : [])
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false))
-  }, [navigate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // run once on mount only — navigate is stable but listing it causes re-fetch loops
 
-  const logout = () => { localStorage.removeItem('token'); navigate('/login') }
+  const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('userName'); navigate('/login') }
 
   const handleSave = (saved, isEdit) => {
     if (isEdit) { setWorkflows(prev => prev.map(w => w.id === saved.id ? saved : w)); setEditTarget(null) }

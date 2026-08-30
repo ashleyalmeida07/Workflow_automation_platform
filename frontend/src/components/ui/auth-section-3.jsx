@@ -43,6 +43,7 @@ export default function AuthSectionThree({ mode = "register" }) {
           setError(data.detail || "Google login failed");
         } else {
           localStorage.setItem("token", data.access_token);
+          if (data.name) localStorage.setItem("userName", data.name);
           navigate("/dashboard");
         }
       } catch (err) {
@@ -79,10 +80,17 @@ export default function AuthSectionThree({ mode = "register" }) {
       if (!res.ok) {
         setError(data.detail || "Authentication failed");
       } else {
-        if (mode === "login") {
-          localStorage.setItem("token", data.access_token);
+        // Both login AND register: store token and go straight to the dashboard.
+        // For register the backend returns the user object; for login it returns {access_token}.
+        // We handle both shapes here.
+        const token = data.access_token;
+        if (token) {
+          localStorage.setItem("token", token);
+          // Cache the name so the navbar shows it instantly without an API round-trip.
+          if (data.name) localStorage.setItem("userName", data.name);
           navigate("/dashboard");
-        } else {
+        } else if (mode === "register") {
+          // If the register endpoint doesn't return a token, just send to login.
           navigate("/login");
         }
       }

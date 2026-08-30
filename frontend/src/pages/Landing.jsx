@@ -51,7 +51,12 @@ function Reveal({ children, delay = 0, className = '' }) {
 // ── Hero Section ──────────────────────────────────────────────────────────────
 function Hero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [user, setUser] = useState(null)
+  // Show cached name instantly; API call below replaces with full profile
+  const [user, setUser] = useState(() => {
+    const cached = localStorage.getItem('userName')
+    const token  = localStorage.getItem('token')
+    return (token && cached) ? { name: cached } : null
+  })
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -61,8 +66,15 @@ function Hero() {
           if (res.ok) return res.json()
           throw new Error('Not logged in')
         })
-        .then(data => setUser(data))
-        .catch(() => localStorage.removeItem('token'))
+        .then(data => {
+          setUser(data)
+          if (data?.name) localStorage.setItem('userName', data.name)
+        })
+        .catch(() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('userName')
+          setUser(null)
+        })
     }
   }, [])
 
