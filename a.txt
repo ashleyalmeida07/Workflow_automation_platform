@@ -1,0 +1,40 @@
+# Dump local data
+pg_dump -U postgres -h localhost -p 5432 flowforge > backup.sql
+
+# Push to Neon (using their connection string)
+psql "postgresql://postgres:postgres@localhost:5432/flowforge" < backup.sql
+
+
+Stop the container (data is safe, just paused):
+
+powershell
+docker-compose stop
+Start it again:
+
+powershell
+docker-compose start
+Stop AND remove the container (data still safe in the volume):
+
+powershell
+docker-compose down
+Stop AND delete everything including data (nuclear option):
+
+powershell
+docker-compose down -v
+Get/view the data
+See all tables via psql:
+
+powershell
+docker exec -it flowforge_db psql -U postgres -d flowforge -c "\dt"
+Query a table directly:
+
+powershell
+docker exec -it flowforge_db psql -U postgres -d flowforge -c "SELECT * FROM users;"
+Export all data to a file (the migration command):
+
+powershell
+docker exec flowforge_db pg_dump -U postgres flowforge > backup.sql
+Push that backup to Neon:
+
+powershell
+psql "postgresql://neondb_owner:npg_Ool1Mx0VgUNJ@ep-orange-sun-axjkwpv1-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require" < backup.sql
