@@ -247,8 +247,24 @@ function FlowCanvasInner({
   }, [screenToFlowPosition, setNodes, nodeTypes])
 
   // ── Edges ────────────────────────────────────────────────────────────
+  const defaultEdgeOptions = {
+    type: 'smoothstep',
+    animated: true,
+    style: {
+      stroke: '#6366f1',
+      strokeWidth: 2,
+      filter: 'drop-shadow(0 0 4px #6366f188)',
+    },
+    markerEnd: {
+      type: 'arrowclosed',
+      color: '#6366f1',
+      width: 16,
+      height: 16,
+    },
+  }
+
   const onConnect = useCallback(
-    params => setEdges(eds => addEdge({ ...params, animated: true }, eds)),
+    params => setEdges(eds => addEdge({ ...params, ...defaultEdgeOptions }, eds)),
     [setEdges],
   )
 
@@ -283,26 +299,29 @@ function FlowCanvasInner({
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         onNodeContextMenu={onNodeContextMenu}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineStyle={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '6 3' }}
         fitView
         colorMode="dark"
         className="bg-[#0c0c0c]"
         deleteKeyCode={['Backspace', 'Delete']}
+        snapToGrid
+        snapGrid={[16, 16]}
       >
-        <Controls className="bg-[#1a1a1a] border-white/10" />
+        <Controls
+          style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}
+        />
         <MiniMap
           zoomable pannable
           nodeColor={n => {
             const c = n.data?.color
-            if (c === 'orange') return '#f97316'
-            if (c === 'purple') return '#a855f7'
-            if (c === 'green')  return '#22c55e'
-            if (c === 'yellow') return '#eab308'
-            return '#3b82f6'
+            const map = { orange:'#f97316', purple:'#a855f7', green:'#22c55e', yellow:'#eab308', teal:'#14b8a6', indigo:'#6366f1', gray:'#9ca3af' }
+            return map[c] || '#3b82f6'
           }}
-          style={{ backgroundColor: '#111' }}
-          maskColor="rgba(0,0,0,0.7)"
+          style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}
+          maskColor="rgba(0,0,0,0.75)"
         />
-        <Background variant="dots" gap={16} size={1} color="#333" />
+        <Background variant="lines" gap={32} size={0.5} color="#ffffff08" />
       </ReactFlow>
 
       {/* Right-click context menu */}
@@ -350,19 +369,21 @@ export default function Flow() {
       .catch(err => console.error('node-types fetch failed:', err))
   }, [])
 
-  // ── Config panel: update a node's settings ─────────────────────────────
-  const handleSettingsUpdate = useCallback((nodeId, newSettings) => {
-    setNodes(nds => nds.map(n =>
-      n.id === nodeId
-        ? { ...n, data: { ...n.data, settings: newSettings } }
-        : n
-    ))
+  // ── Config panel: update a node's settings and/or label ────────────────
+  const handleSettingsUpdate = useCallback((nodeId, newSettings, newLabel) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== nodeId) return n
+      const updatedData = { ...n.data, settings: newSettings }
+      if (newLabel !== undefined) updatedData.label = newLabel
+      return { ...n, data: updatedData }
+    }))
     // Keep the panel in sync too
-    setSelectedNode(prev =>
-      prev?.id === nodeId
-        ? { ...prev, data: { ...prev.data, settings: newSettings } }
-        : prev
-    )
+    setSelectedNode(prev => {
+      if (prev?.id !== nodeId) return prev
+      const updatedData = { ...prev.data, settings: newSettings }
+      if (newLabel !== undefined) updatedData.label = newLabel
+      return { ...prev, data: updatedData }
+    })
   }, [setNodes])
 
   // ── Run the workflow ───────────────────────────────────────────────────
