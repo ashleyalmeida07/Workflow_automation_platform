@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -132,4 +133,34 @@ def profile(
 ):
     return current_user
 
-    
+
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    email: str | None = None
+
+
+@router.put("/profile", response_model=UserResponse)
+def update_profile(
+    data: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if data.name is not None:
+        current_user.name = data.name
+    if data.email is not None:
+        existing = db.query(User).filter(
+            User.email == data.email,
+            User.id != current_user.id,
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use",
+            )
+        current_user.email = data.email
+
+    from datetime import datetime
+    current_user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+    return current_user

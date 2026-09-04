@@ -51,7 +51,9 @@ class Workflow(Base):
 
     executions: Mapped[list["Execution"]] = relationship(
         "Execution",
-        back_populates="workflow"
+        back_populates="workflow",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     user: Mapped["User | None"] = relationship(

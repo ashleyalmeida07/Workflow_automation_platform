@@ -1,4 +1,4 @@
-﻿/* WorkflowNode.jsx – polished node cards with glowing handles */
+/* WorkflowNode.jsx – polished node cards with glowing handles */
 import { Handle, Position } from "@xyflow/react";
 
 // Color palette per node type
@@ -141,15 +141,12 @@ const ICONS = {
 };
 
 // Handle style factory
-function handleStyle(color, isHovered) {
+function handleStyle(color) {
   return {
-    width: 12,
-    height: 12,
+    width: 10,
+    height: 10,
     background: color,
-    border: "2px solid rgba(0,0,0,0.6)",
-    boxShadow: `0 0 8px ${color}88`,
-    transition: "all 0.15s ease",
-    cursor: "crosshair",
+    border: "2px solid rgba(0,0,0,0.5)",
   };
 }
 
@@ -161,10 +158,10 @@ export default function WorkflowNode({ data, selected }) {
     <div
       className={`
         relative min-w-[180px] max-w-[240px] rounded-2xl border
-        backdrop-blur-sm shadow-lg
+        backdrop-blur-sm
         transition-all duration-200 cursor-default select-none
-        ${p.bg} ${p.border} ${p.glow}
-        ${selected ? `ring-2 ${p.ring} shadow-xl` : "shadow-md"}
+        ${p.bg} ${p.border}
+        ${selected ? `ring-2 ${p.ring} shadow-lg` : "shadow-sm"}
       `}
     >
       {/* Input handle — top center */}

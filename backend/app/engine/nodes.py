@@ -79,8 +79,20 @@ def run_python_function(node: dict, state: dict) -> dict:
     code     = settings.get("code", "")
 
     local_scope = {"state": state, "result": {}}
+
+    # Allow common safe builtins
+    safe_builtins = {
+        "print": print, "len": len, "range": range,
+        "str": str, "int": int, "float": float, "bool": bool,
+        "list": list, "dict": dict, "tuple": tuple, "set": set,
+        "min": min, "max": max, "sum": sum, "abs": abs,
+        "round": round, "sorted": sorted, "enumerate": enumerate,
+        "zip": zip, "map": map, "filter": filter,
+        "isinstance": isinstance, "type": type,
+    }
+
     try:
-        exec(code, {"__builtins__": {}}, local_scope)
+        exec(code, {"__builtins__": safe_builtins}, local_scope)
     except Exception as e:
         raise ValueError(f"Python Function node error: {e}")
 
