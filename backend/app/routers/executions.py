@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import get_db
 from app.models.workflow import Workflow
@@ -86,11 +87,15 @@ def execute_workflow(
     result = run_workflow(workflow.workflow_json)
 
     # ── 4. Persist the result ─────────────────────────────────────────────
-    execution.status      = result["status"]           # "completed" | "failed"
-    execution.output      = result                     # full result stored as JSON
-    execution.logs        = result.get("error", "")   # top-level error if any
-    execution.finished_at = datetime.now(timezone.utc)
-    db.commit()
+    try:
+        execution.status      = result["status"]           # "completed" | "failed"
+        execution.output      = result                     # full result stored as JSON
+        execution.logs        = result.get("error", "")   # top-level error if any
+        execution.finished_at = datetime.now(timezone.utc)
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database failure: {e}")
 
     # ── 5. Return the full result to the caller ───────────────────────────
     return {

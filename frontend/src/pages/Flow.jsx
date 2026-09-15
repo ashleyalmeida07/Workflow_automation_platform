@@ -27,6 +27,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Link, useLocation } from 'react-router-dom'
+import toast from 'react-hot-toast'
 
 import WorkflowNode         from '../components/WorkflowNode'
 import NodeConfigPanel      from '../components/NodeConfigPanel'
@@ -413,7 +414,30 @@ function FlowCanvasInner({
   }
 
   const onConnect = useCallback(
-    params => setEdges(eds => addEdge({ ...params, ...defaultEdgeOptions }, eds)),
+    params => setEdges(eds => {
+      // Cycle detection (DFS) to prevent infinite loops
+      const hasCycle = (source, target, edges) => {
+        if (source === target) return true
+        const visited = new Set()
+        const stack = [target]
+        while (stack.length > 0) {
+          const current = stack.pop()
+          if (current === source) return true
+          if (!visited.has(current)) {
+            visited.add(current)
+            const children = edges.filter(e => e.source === current).map(e => e.target)
+            stack.push(...children)
+          }
+        }
+        return false
+      }
+
+      if (hasCycle(params.source, params.target, eds)) {
+        toast.error('Invalid connection: Creates an infinite loop.')
+        return eds
+      }
+      return addEdge({ ...params, ...defaultEdgeOptions }, eds)
+    }),
     [setEdges],
   )
 
@@ -560,6 +584,16 @@ export default function Flow() {
   // ── Run the workflow ───────────────────────────────────────────────────
   const handleRun = async () => {
     if (!workflowId) return
+
+    // Pre-flight check for missing configuration
+    const { nodes } = getFlowState()
+    for (const n of nodes) {
+      if (n.data.engine_type === 'http_request' && !n.data.settings?.url) {
+        toast.error(`Missing configuration: Node "${n.data.label}" requires a URL.`)
+        return
+      }
+    }
+
     setRunning(true)
     setExecResult(null)
     try {
@@ -568,8 +602,13 @@ export default function Flow() {
         headers: authHeaders(),
       })
       const data = await res.json()
+      
+      if (!res.ok || data.status === 'failed') {
+        toast.error(data.error || data.detail || 'Execution failed')
+      }
       setExecResult(data)
     } catch (err) {
+      toast.error(`Error: ${err.message}`)
       setExecResult({ status: 'failed', steps: [], error: err.message })
     } finally {
       setRunning(false)

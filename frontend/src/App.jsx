@@ -7,24 +7,29 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 
+import { Toaster } from 'react-hot-toast'
+
 function App() {
   return (
-    <Routes>
-      {/* Root → Landing page */}
-      <Route path="/" element={<Landing />} />
+    <>
+      <Toaster position="top-center" />
+      <Routes>
+        {/* Root → Landing page */}
+        <Route path="/" element={<Landing />} />
 
-      {/* Auth */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+        {/* Auth */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* App */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/flow" element={<Flow />} />
-      <Route path="/profile" element={<Profile />} />
+        {/* App */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/flow" element={<Flow />} />
+        <Route path="/profile" element={<Profile />} />
 
-      {/* Legacy home */}
-      <Route path="/home" element={<Home />} />
-    </Routes>
+        {/* Legacy home */}
+        <Route path="/home" element={<Home />} />
+      </Routes>
+    </>
   )
 }
 

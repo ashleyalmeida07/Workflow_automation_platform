@@ -42,8 +42,11 @@ def run_http_request(node: dict, state: dict) -> dict:
     if not url:
         raise ValueError("HTTP Request node: 'url' is required")
 
-    with httpx.Client(timeout=15) as client:
-        response = client.request(method, url, headers=headers, json=body if body else None)
+    try:
+        with httpx.Client(timeout=15) as client:
+            response = client.request(method, url, headers=headers, json=body if body else None)
+    except httpx.RequestError as e:
+        raise ValueError(f"HTTP Connection failed: {e}")
 
     try:
         resp_body = response.json()
