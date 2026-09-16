@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET: str = "change-this-secret"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080   # 7 days
 
     # Google Auth
     GOOGLE_CLIENT_ID: str = ""

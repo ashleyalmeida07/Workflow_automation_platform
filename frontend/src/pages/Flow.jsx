@@ -223,12 +223,16 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad }) {
       const { nodes, edges } = getFlowState()
       const res = await fetch(`${API}/workflows/${workflowId}`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: authHeaders(),          // already includes Content-Type: application/json
         body: JSON.stringify({ workflow_json: { nodes, edges } }),
       })
-      if (!res.ok) throw new Error('Failed')
-    } catch {
-      alert('Error saving workflow')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || `Server error ${res.status}`)
+      }
+      toast.success('Workflow saved')
+    } catch (err) {
+      toast.error(`Save failed: ${err.message}`)
     } finally {
       setSaving(false)
     }
@@ -258,7 +262,7 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad }) {
       }
       onLoad(json.nodes || [], json.edges || [])
     } catch (err) {
-      alert(`Failed to load JSON: ${err.message}`)
+      toast.error(`Failed to load JSON: ${err.message}`)
     } finally {
       if (loadRef.current) loadRef.current.value = ''
     }
@@ -496,14 +500,19 @@ function FlowCanvasInner({
           style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}
         />
         <MiniMap
-          zoomable pannable
+          zoomable
+          pannable
+          nodeBorderRadius={8}
+          maskStrokeColor="rgba(255,255,255,0.1)"
+          maskStrokeWidth={2}
+          maskColor="rgba(0, 0, 0, 0.6)"
+          className="!bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 !rounded-2xl shadow-2xl overflow-hidden"
           nodeColor={n => {
             const c = n.data?.color
-            const map = { orange:'#f97316', purple:'#a855f7', green:'#22c55e', yellow:'#eab308', teal:'#14b8a6', indigo:'#6366f1', gray:'#9ca3af' }
-            return map[c] || '#3b82f6'
+            // Lighter, more pastel colors for the minimap nodes look more premium on dark mode
+            const map = { orange:'#fb923c', purple:'#c084fc', green:'#4ade80', yellow:'#facc15', teal:'#2dd4bf', indigo:'#818cf8', gray:'#9ca3af' }
+            return map[c] || '#60a5fa'
           }}
-          style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}
-          maskColor="rgba(0,0,0,0.75)"
         />
         <Background variant="lines" gap={32} size={0.5} color="#ffffff08" />
       </ReactFlow>
@@ -581,6 +590,32 @@ export default function Flow() {
     })
   }, [setNodes])
 
+  // ── Animate steps after execution ─────────────────────────────────────
+  const animateSteps = useCallback(async (steps) => {
+    const STEP_MS    = 500   // how long each node shows "running"
+    const CLEAR_MS   = 4000  // how long success/failed badges linger
+
+    // Helper: set _status on one node
+    const setStatus = (nodeId, status) =>
+      setNodes(nds => nds.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, _status: status } } : n
+      ))
+
+    // Helper: clear all _status fields
+    const clearAll = () =>
+      setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, _status: undefined } })))
+
+    for (const step of steps) {
+      setStatus(step.node_id, 'running')
+      await new Promise(r => setTimeout(r, STEP_MS))
+      setStatus(step.node_id, step.error ? 'failed' : 'success')
+    }
+
+    // Auto-clear after a pause so the user can see the final state
+    await new Promise(r => setTimeout(r, CLEAR_MS))
+    clearAll()
+  }, [setNodes])
+
   // ── Run the workflow ───────────────────────────────────────────────────
   const handleRun = async () => {
     if (!workflowId) return
@@ -602,11 +637,16 @@ export default function Flow() {
         headers: authHeaders(),
       })
       const data = await res.json()
-      
+
       if (!res.ok || data.status === 'failed') {
         toast.error(data.error || data.detail || 'Execution failed')
       }
       setExecResult(data)
+
+      // Replay step animations (non-blocking — let it run in the background)
+      if (data.steps?.length) {
+        animateSteps(data.steps)
+      }
     } catch (err) {
       toast.error(`Error: ${err.message}`)
       setExecResult({ status: 'failed', steps: [], error: err.message })

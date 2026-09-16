@@ -1,0 +1,84 @@
+{
+    "nodes": [
+        {
+            "id": "n_1",
+            "type": "workflowNode",
+            "position": { "x": 100, "y": 250 },
+            "data": {
+                "label": "Start",
+                "engine_type": "trigger",
+                "color": "orange",
+                "settings": {}
+            }
+        },
+        {
+            "id": "n_2",
+            "type": "workflowNode",
+            "position": { "x": 400, "y": 150 },
+            "data": {
+                "label": "Test GET",
+                "engine_type": "http_request",
+                "color": "blue",
+                "settings": {
+                    "method": "GET",
+                    "url": "https://jsonplaceholder.typicode.com/posts/1",
+                    "headers": "{}",
+                    "body": "{}"
+                }
+            }
+        },
+        {
+            "id": "n_3",
+            "type": "workflowNode",
+            "position": { "x": 700, "y": 250 },
+            "data": {
+                "label": "Test POST",
+                "engine_type": "http_request",
+                "color": "blue",
+                "settings": {
+                    "method": "POST",
+                    "url": "https://jsonplaceholder.typicode.com/posts",
+                    "headers": "{\"Content-type\": \"application/json; charset=UTF-8\"}",
+                    "body": "{\"title\": \"API Test\", \"body\": \"Testing the POST request\", \"userId\": 99}"
+                }
+            }
+        },
+        {
+            "id": "n_4",
+            "type": "workflowNode",
+            "position": { "x": 1000, "y": 250 },
+            "data": {
+                "label": "Log Results",
+                "engine_type": "logger",
+                "color": "teal",
+                "settings": {
+                    "message": "POST Status Code: {{status_code}}\nPOST Response: {{response}}",
+                    "level": "info"
+                }
+            }
+        }
+    ],
+        "edges": [
+            {
+                "source": "n_1",
+                "target": "n_2",
+                "id": "e1",
+                "type": "smoothstep",
+                "animated": false
+            },
+            {
+                "source": "n_2",
+                "target": "n_3",
+                "id": "e2",
+                "type": "smoothstep",
+                "animated": false
+            },
+            {
+                "source": "n_3",
+                "target": "n_4",
+                "id": "e3",
+                "type": "smoothstep",
+                "animated": false
+            }
+        ]
+}

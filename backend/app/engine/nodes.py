@@ -24,27 +24,38 @@ def run_http_request(node: dict, state: dict) -> dict:
     settings = node.get("data", {}).get("settings", {})
     method   = settings.get("method", "GET").upper()
     url      = settings.get("url", "").strip()
-    
-    # Parse headers and body from JSON strings
+
+    # Parse headers from JSON string
     headers_str = settings.get("headers", "{}")
-    body_str    = settings.get("body", "{}")
-    
     try:
         headers = json.loads(headers_str) if isinstance(headers_str, str) else headers_str
     except json.JSONDecodeError:
         headers = {}
-        
-    try:
-        body = json.loads(body_str) if isinstance(body_str, str) else body_str
-    except json.JSONDecodeError:
-        body = None
+
+    # Body is only meaningful for POST / PUT / PATCH
+    BODYLESS_METHODS = {"GET", "HEAD", "DELETE", "OPTIONS", "TRACE"}
+    body = None
+    if method not in BODYLESS_METHODS:
+        body_str = settings.get("body", "")
+        if body_str and body_str.strip() not in ("", "{}"):
+            try:
+                body = json.loads(body_str) if isinstance(body_str, str) else body_str
+            except json.JSONDecodeError:
+                body = None
 
     if not url:
         raise ValueError("HTTP Request node: 'url' is required")
 
     try:
         with httpx.Client(timeout=15) as client:
-            response = client.request(method, url, headers=headers, json=body if body else None)
+            # Only include a body for methods that support it.
+            # Never pass json=None — some servers interpret an empty
+            # Content-Type: application/json as a malformed request body.
+            req_kwargs: dict = {"headers": headers}
+            if body is not None:
+                req_kwargs["json"] = body
+
+            response = client.request(method, url, **req_kwargs)
     except httpx.RequestError as e:
         raise ValueError(f"HTTP Connection failed: {e}")
 
