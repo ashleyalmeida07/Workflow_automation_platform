@@ -452,6 +452,13 @@ function FlowCanvasInner({
         toast.error('Invalid connection: Creates an infinite loop.')
         return eds
       }
+      // Block connections INTO trigger nodes — they are always start nodes
+      const targetNode = nodes.find(n => n.id === params.target)
+      if (targetNode?.data?.engine_type === 'trigger') {
+        toast.error('Cannot connect into a Start/Trigger node.')
+        return eds
+      }
+
       return addEdge({ ...params, ...defaultEdgeOptions }, eds)
     }),
     [setEdges],

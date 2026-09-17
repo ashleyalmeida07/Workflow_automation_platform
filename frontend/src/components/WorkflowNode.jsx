@@ -65,7 +65,10 @@ export default function WorkflowNode({ data, selected }) {
         </div>
       )}
 
-      <Handle type="target" position={Position.Top} style={handleStyle(p.handle)} />
+      {/* trigger nodes have no input — hide the target handle */}
+      {data.engine_type !== "trigger" && (
+        <Handle type="target" position={Position.Top} style={handleStyle(p.handle)} />
+      )}
 
       <div className={`flex items-center gap-2.5 px-3 py-2.5 ${p.header} rounded-t-2xl border-b ${borderClass}`}>
         <span className={`${p.text} opacity-90 ${isRunning ? "animate-spin" : ""}`}>

@@ -73,6 +73,13 @@ def run_workflow(workflow_json: dict) -> dict:
     queue = [nid for nid, count in incoming.items() if count == 0]
 
     if not queue:
+        # Safety fallback: look for a node explicitly typed as 'trigger'
+        for n in nodes:
+            if n.get("data", {}).get("engine_type") == "trigger":
+                queue = [n["id"]]
+                break
+
+    if not queue:
         return {
             "status": "failed",
             "state":  {},
