@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from app.database import engine, Base
@@ -17,6 +18,21 @@ import app.models.execution  # noqa: F401
 settings = get_settings()
 
 
+class CorsFallbackMiddleware(BaseHTTPMiddleware):
+    """
+    Starlette's CORSMiddleware does not add CORS headers to HTTP error responses
+    (401, 422, 500, etc.), causing browsers to raise a CORS error even for
+    normal auth failures.  This middleware ensures the header is always present.
+    """
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin")
+        if origin and "access-control-allow-origin" not in response.headers:
+            response.headers["access-control-allow-origin"] = origin
+            response.headers["access-control-allow-credentials"] = "true"
+        return response
+
+
 def create_app() -> FastAPI:
     """Application factory for the FastAPI app."""
     app = FastAPI(
@@ -29,14 +45,20 @@ def create_app() -> FastAPI:
     # Create all DB tables on startup (safe to run repeatedly)
     Base.metadata.create_all(bind=engine)
 
-    # CORS middleware
+    # CORS middleware — must come BEFORE routers so it also covers error responses.
+    # Starlette strips CORS headers from 4xx/5xx by default; using allow_origins=["*"]
+    # during startup is the safest workaround for Render + Vercel deployments.
+    origins = settings.cors_origins_list or ["*"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
+    # Outer middleware: ensures CORS headers are present even on error responses
+    app.add_middleware(CorsFallbackMiddleware)
 
     # Routers
     app.include_router(health.router)
