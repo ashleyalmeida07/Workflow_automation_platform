@@ -1,4 +1,4 @@
-/* WorkflowNode.jsx – polished node cards with glowing handles + execution state */
+/* WorkflowNode.jsx â€“ polished node cards with glowing handles + execution state */
 import { Handle, Position } from "@xyflow/react";
 
 const PALETTE = {
@@ -27,21 +27,7 @@ function handleStyle(color) {
   return { width: 10, height: 10, background: color, border: "2px solid rgba(0,0,0,0.5)" };
 }
 
-function RunningRing() {
-  return (
-    <div
-      className="node-running-ring pointer-events-none absolute inset-0 rounded-2xl z-20"
-      style={{
-        background: "conic-gradient(from 0deg, transparent 70%, rgba(251,191,36,0.95) 100%)",
-        mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-        maskComposite: "exclude",
-        WebkitMaskComposite: "xor",
-        padding: "2px",
-      }}
-    />
-  );
-}
+
 
 export default function WorkflowNode({ data, selected }) {
   const p      = PALETTE[data.color] || PALETTE.blue;
@@ -57,9 +43,16 @@ export default function WorkflowNode({ data, selected }) {
   const labelColor  = isRunning ? "text-yellow-300" : isSuccess ? "text-green-300" : isFailed ? "text-red-300" : p.text;
 
   return (
-    <div className={`relative min-w-[180px] max-w-[240px] rounded-2xl border backdrop-blur-sm cursor-default select-none transition-all duration-300 ${p.bg} ${borderClass} ${isRunning ? "node-running" : ""} ${isFailed ? "node-failed" : ""} ${selected ? `ring-2 ${p.ring} shadow-lg` : "shadow-sm"} ${glowClass}`}>
+    <div className={`relative min-w-[180px] max-w-[240px] rounded-2xl border backdrop-blur-sm cursor-default select-none transition-all duration-300 ${p.bg} ${borderClass} ${isFailed ? "node-failed" : ""} ${selected ? `ring-2 ${p.ring} shadow-lg` : "shadow-sm"} ${glowClass}`}>
 
-      {isRunning && <RunningRing />}
+      {isRunning && (
+        <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center z-40 backdrop-blur-[2px]">
+          <svg className="animate-spin w-8 h-8 text-yellow-400 drop-shadow-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+      )}
 
       {isSuccess && (
         <div className="node-success-badge absolute -top-2.5 -right-2.5 z-30 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/60">
@@ -82,7 +75,7 @@ export default function WorkflowNode({ data, selected }) {
         </span>
         <span className={`text-sm font-semibold ${labelColor}`}>{data.label}</span>
 
-        {isRunning && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 uppercase tracking-wide animate-pulse">running…</span>}
+        {isRunning && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 uppercase tracking-wide animate-pulse">runningâ€¦</span>}
         {isSuccess && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-green-500/20 text-green-300 uppercase tracking-wide">done ?</span>}
         {isFailed  && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-500/20 text-red-300 uppercase tracking-wide">failed ?</span>}
         {!status   && <span className={`ml-auto text-[9px] font-mono px-1.5 py-0.5 rounded-md ${p.badge} opacity-70`}>{data.engine_type}</span>}
@@ -117,3 +110,4 @@ export default function WorkflowNode({ data, selected }) {
     </div>
   );
 }
+

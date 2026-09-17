@@ -43,6 +43,19 @@ function authHeaders() {
   }
 }
 
+// Thin fetch wrapper: if any request returns 401, clear stale token → /login
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } })
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+    toast.error('Session expired — please log in again')
+    setTimeout(() => { window.location.href = '/login' }, 1500)
+    throw new Error('Unauthorized')
+  }
+  return res
+}
+
+
 // ── SVG icon components per node type ────────────────────────────────────
 const NODE_ICONS = {
   trigger: (
@@ -221,9 +234,8 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad }) {
     setSaving(true)
     try {
       const { nodes, edges } = getFlowState()
-      const res = await fetch(`${API}/workflows/${workflowId}`, {
+      const res = await apiFetch(`${API}/workflows/${workflowId}`, {
         method: 'PUT',
-        headers: authHeaders(),          // already includes Content-Type: application/json
         body: JSON.stringify({ workflow_json: { nodes, edges } }),
       })
       if (!res.ok) {
@@ -350,7 +362,7 @@ function FlowCanvasInner({
   // Load saved workflow on mount
   useEffect(() => {
     if (!workflowId) return
-    fetch(`${API}/workflows/${workflowId}`, { headers: authHeaders() })
+    apiFetch(`${API}/workflows/${workflowId}`)
       .then(r => r.json())
       .then(data => {
         if (data.workflow_json) {
@@ -358,7 +370,7 @@ function FlowCanvasInner({
           setEdges(data.workflow_json.edges || [])
         }
       })
-      .catch(console.error)
+      .catch(err => { if (err.message !== 'Unauthorized') console.error(err) })
   }, [workflowId])
 
   // ── Drag & Drop ──────────────────────────────────────────────────────
@@ -632,9 +644,8 @@ export default function Flow() {
     setRunning(true)
     setExecResult(null)
     try {
-      const res  = await fetch(`${API}/workflows/${workflowId}/execute`, {
+      const res  = await apiFetch(`${API}/workflows/${workflowId}/execute`, {
         method: 'POST',
-        headers: authHeaders(),
       })
       const data = await res.json()
 

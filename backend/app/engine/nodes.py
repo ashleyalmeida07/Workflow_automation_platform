@@ -47,7 +47,7 @@ def run_http_request(node: dict, state: dict) -> dict:
         raise ValueError("HTTP Request node: 'url' is required")
 
     try:
-        with httpx.Client(timeout=15) as client:
+        with httpx.Client(timeout=15, follow_redirects=True) as client:
             # Only include a body for methods that support it.
             # Never pass json=None — some servers interpret an empty
             # Content-Type: application/json as a malformed request body.
