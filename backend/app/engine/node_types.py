@@ -1,4 +1,4 @@
-﻿"""
+"""
 node_types.py - the catalogue of supported node types.
 
 Each node includes:
@@ -26,7 +26,7 @@ NODE_TYPES = {
     "http_request": {
         "icon":        "Globe",
         "name":        "HTTP Request",
-        "description": "Make an HTTP GET / POST / PUT / DELETE call",
+        "description": "Make an HTTP GET/POST call. Supports {{key}} placeholders in URL, Headers, and Body.",
         "color":       "blue",
         "engine_type": "http_request",
         "inputs":      ["body"],
@@ -114,5 +114,20 @@ NODE_TYPES = {
         "inputs":      ["input"],
         "outputs":     [],
         "settings":    {},
+    },
+    "local_storage": {
+        "icon":        "Database",
+        "name":        "Local Storage",
+        "description": "Store or retrieve data from a local JSON file (acts like Google Sheets for MVP)",
+        "color":       "emerald",
+        "engine_type": "local_storage",
+        "inputs":      ["input"],
+        "outputs":     ["output"],
+        "settings": {
+            "operation": {"type": "select", "label": "Operation", "default": "read",
+                          "options": ["read", "append"]},
+            "file_name": {"type": "text", "label": "File Name", "default": "storage.json"},
+            "data":      {"type": "text", "label": "Data (JSON/Text to append)", "default": "{}"},
+        },
     },
 }

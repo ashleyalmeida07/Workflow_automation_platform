@@ -1,0 +1,128 @@
+{
+    "nodes": [
+        {
+            "id": "n_1",
+            "type": "workflowNode",
+            "position": { "x": 100, "y": 250 },
+            "data": {
+                "label": "Start",
+                "engine_type": "trigger",
+                "color": "orange",
+                "settings": {}
+            }
+        },
+        {
+            "id": "n_2",
+            "type": "workflowNode",
+            "position": { "x": 350, "y": 250 },
+            "data": {
+                "label": "Read Sent Memes",
+                "engine_type": "local_storage",
+                "color": "emerald",
+                "settings": {
+                    "operation": "read",
+                    "file_name": "sent_memes.json",
+                    "data": "{}"
+                }
+            }
+        },
+        {
+            "id": "n_3",
+            "type": "workflowNode",
+            "position": { "x": 600, "y": 250 },
+            "data": {
+                "label": "Fetch Memes",
+                "engine_type": "http_request",
+                "color": "blue",
+                "settings": {
+                    "method": "GET",
+                    "url": "https://meme-api.com/gimme/memes/10",
+                    "headers": "{}",
+                    "body": "{}"
+                }
+            }
+        },
+        {
+            "id": "n_4",
+            "type": "workflowNode",
+            "position": { "x": 850, "y": 250 },
+            "data": {
+                "label": "Deduplicate & Format",
+                "engine_type": "python_function",
+                "color": "indigo",
+                "settings": {
+                    "code": "memes = state.get('response', {}).get('memes', [])\nsent_data = state.get('storage_data', [])\nsent_urls = set(item.get('url') for item in sent_data if isinstance(item, dict) and item.get('url'))\n\nselected = None\nfor m in memes:\n    url = m.get('url', '')\n    if url and url not in sent_urls and not m.get('nsfw'):\n        selected = m\n        break\n\nif selected:\n    result['has_new'] = 'True'\n    result['meme_url'] = selected.get('url')\n    result['meme_title'] = selected.get('title')\n    caption = f\"📸 Meme (r/{selected.get('subreddit', 'memes')})\\n\\n📌 {selected.get('title', '')}\\n⬆️ {selected.get('ups', 0)} upvotes\\n🔗 {selected.get('url', '')}\"\n    \n    telegram_body = {\n        \"chat_id\": \"6276534589\",\n        \"photo\": selected.get('url'),\n        \"caption\": caption[:1024],\n        \"parse_mode\": \"HTML\"\n    }\n    result['telegram_body'] = json.dumps(telegram_body)\nelse:\n    result['has_new'] = 'False'\n    result['telegram_body'] = '{}'\n"
+                }
+            }
+        },
+        {
+            "id": "n_5",
+            "type": "workflowNode",
+            "position": { "x": 1100, "y": 250 },
+            "data": {
+                "label": "Has New Meme?",
+                "engine_type": "condition",
+                "color": "yellow",
+                "settings": {
+                    "field": "has_new",
+                    "operator": "eq",
+                    "value": "True"
+                }
+            }
+        },
+        {
+            "id": "n_6",
+            "type": "workflowNode",
+            "position": { "x": 1350, "y": 150 },
+            "data": {
+                "label": "Send to Telegram",
+                "engine_type": "http_request",
+                "color": "blue",
+                "settings": {
+                    "method": "POST",
+                    "url": "https://api.telegram.org/bot8711766169:AAGFew0X1RiMRmBpOn-fN9OnsUWCTkkppVk/sendPhoto",
+                    "headers": "{\"Content-Type\": \"application/json\"}",
+                    "body": "{{telegram_body}}"
+                }
+            }
+        },
+        {
+            "id": "n_7",
+            "type": "workflowNode",
+            "position": { "x": 1600, "y": 150 },
+            "data": {
+                "label": "Log as Sent",
+                "engine_type": "local_storage",
+                "color": "emerald",
+                "settings": {
+                    "operation": "append",
+                    "file_name": "sent_memes.json",
+                    "data": "{\"url\": \"{{meme_url}}\", \"title\": \"{{meme_title}}\"}"
+                }
+            }
+        },
+        {
+            "id": "n_8",
+            "type": "workflowNode",
+            "position": { "x": 1350, "y": 350 },
+            "data": {
+                "label": "Log Empty",
+                "engine_type": "logger",
+                "color": "teal",
+                "settings": {
+                    "message": "No new memes found after filtering 10 items.",
+                    "level": "info"
+                }
+            }
+        }
+    ],
+    "edges": [
+        { "id": "e1", "source": "n_1", "target": "n_2", "type": "smoothstep" },
+        { "id": "e2", "source": "n_2", "target": "n_3", "type": "smoothstep" },
+        { "id": "e3", "source": "n_3", "target": "n_4", "type": "smoothstep" },
+        { "id": "e4", "source": "n_4", "target": "n_5", "type": "smoothstep" },
+        { "id": "e5", "source": "n_5", "target": "n_6", "sourceHandle": "true", "type": "smoothstep" },
+        { "id": "e6", "source": "n_5", "target": "n_8", "sourceHandle": "false", "type": "smoothstep" },
+        { "id": "e7", "source": "n_6", "target": "n_7", "type": "smoothstep" }
+    ]
+}

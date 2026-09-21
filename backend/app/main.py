@@ -15,6 +15,9 @@ import app.models.user       # noqa: F401
 import app.models.workflow   # noqa: F401
 import app.models.execution  # noqa: F401
 
+from sqlalchemy.exc import OperationalError, DatabaseError
+from fastapi.responses import JSONResponse
+
 settings = get_settings()
 
 
@@ -59,6 +62,21 @@ def create_app() -> FastAPI:
     )
     # Outer middleware: ensures CORS headers are present even on error responses
     app.add_middleware(CorsFallbackMiddleware)
+
+    # Global Exception Handlers
+    @app.exception_handler(OperationalError)
+    async def db_operational_error_handler(request: Request, exc: OperationalError):
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Database connection failed. Please ensure the database is running."}
+        )
+        
+    @app.exception_handler(DatabaseError)
+    async def db_general_error_handler(request: Request, exc: DatabaseError):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "A database error occurred."}
+        )
 
     # Routers
     app.include_router(health.router)

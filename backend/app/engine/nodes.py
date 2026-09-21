@@ -9,6 +9,7 @@ It must return a dict with the values it produced.
 import time
 import httpx
 import json
+import os
 
 # ---------------------------------------------
 # Trigger - just starts the run
@@ -25,8 +26,16 @@ def run_http_request(node: dict, state: dict) -> dict:
     method   = settings.get("method", "GET").upper()
     url      = settings.get("url", "").strip()
 
-    # Parse headers from JSON string
-    headers_str = settings.get("headers", "{}")
+    # Interpolate variables in string
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str): return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    url = interpolate(url)
+    headers_str = interpolate(settings.get("headers", "{}"))
+    
     try:
         headers = json.loads(headers_str) if isinstance(headers_str, str) else headers_str
     except json.JSONDecodeError:
@@ -36,7 +45,7 @@ def run_http_request(node: dict, state: dict) -> dict:
     BODYLESS_METHODS = {"GET", "HEAD", "DELETE", "OPTIONS", "TRACE"}
     body = None
     if method not in BODYLESS_METHODS:
-        body_str = settings.get("body", "")
+        body_str = interpolate(settings.get("body", ""))
         if body_str and body_str.strip() not in ("", "{}"):
             try:
                 body = json.loads(body_str) if isinstance(body_str, str) else body_str
@@ -92,7 +101,7 @@ def run_python_function(node: dict, state: dict) -> dict:
     settings = node.get("data", {}).get("settings", {})
     code     = settings.get("code", "")
 
-    local_scope = {"state": state, "result": {}}
+    local_scope = {"state": state, "result": {}, "json": json}
 
     # Allow common safe builtins
     safe_builtins = {
@@ -106,7 +115,7 @@ def run_python_function(node: dict, state: dict) -> dict:
     }
 
     try:
-        exec(code, {"__builtins__": safe_builtins}, local_scope)
+        exec(code, {"__builtins__": safe_builtins, "json": json}, local_scope)
     except Exception as e:
         raise ValueError(f"Python Function node error: {e}")
 
@@ -197,6 +206,57 @@ def run_end(node: dict, state: dict) -> dict:
 
 
 # ---------------------------------------------
+# Local Storage - JSON file operations
+# ---------------------------------------------
+def run_local_storage(node: dict, state: dict) -> dict:
+    settings = node.get("data", {}).get("settings", {})
+    operation = settings.get("operation", "read")
+    file_name = settings.get("file_name", "storage.json")
+    data_str  = settings.get("data", "{}")
+
+    # Interpolate
+    for key, val in state.items():
+        file_name = file_name.replace(f"{{{{{key}}}}}", str(val))
+        data_str = data_str.replace(f"{{{{{key}}}}}", str(val))
+
+    file_path = os.path.join(os.getcwd(), file_name)
+
+    if operation == "read":
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                try:
+                    content = json.load(f)
+                except json.JSONDecodeError:
+                    content = []
+        else:
+            content = []
+        return {"storage_data": content}
+    
+    elif operation == "append":
+        try:
+            new_data = json.loads(data_str)
+        except json.JSONDecodeError:
+            new_data = data_str
+
+        content = []
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                try:
+                    content = json.load(f)
+                except json.JSONDecodeError:
+                    pass
+        if not isinstance(content, list):
+            content = [content]
+        
+        content.append(new_data)
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=2)
+            
+        return {"storage_appended": new_data}
+
+
+# ---------------------------------------------
 # Registry - maps type string -> runner function
 # ---------------------------------------------
 NODE_RUNNERS = {
@@ -208,4 +268,5 @@ NODE_RUNNERS = {
     "logger":          run_logger,
     "action":          run_action,
     "end":             run_end,
+    "local_storage":   run_local_storage,
 }
