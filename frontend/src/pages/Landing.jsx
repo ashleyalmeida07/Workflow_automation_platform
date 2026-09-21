@@ -63,17 +63,22 @@ function Hero() {
     if (token) {
       fetch(`${API}/auth/profile`, { headers: authHeaders() })
         .then(res => {
+          if (res.status === 401) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('userName')
+            setUser(null)
+          }
           if (res.ok) return res.json()
-          throw new Error('Not logged in')
+          return null
         })
         .then(data => {
-          setUser(data)
-          if (data?.name) localStorage.setItem('userName', data.name)
+          if (data && data.name) {
+            setUser(data)
+            localStorage.setItem('userName', data.name)
+          }
         })
         .catch(() => {
-          localStorage.removeItem('token')
-          localStorage.removeItem('userName')
-          setUser(null)
+          // Network errors (like server waking up) should NOT log the user out
         })
     }
   }, [])
