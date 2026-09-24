@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/flowforge"
+    DATABASE_URL: str = "sqlite:///./flowforge.db"
 
     # CORS — comma-separated list of allowed origins
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://workflow-automation-platform-eta.vercel.app"
