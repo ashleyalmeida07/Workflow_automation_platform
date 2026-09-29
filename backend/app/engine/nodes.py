@@ -4,12 +4,20 @@ nodes.py - one function per node type.
 Each function receives `node` (the raw node dict from workflow_json) and
 `state` (a plain dict that accumulates results as the graph runs).
 It must return a dict with the values it produced.
+
+Adding a new node is simple:
+  1. Write a run_<name>(node, state) -> dict function here.
+  2. Register it in NODE_RUNNERS at the bottom.
+  3. Add its definition to node_types.py.
 """
 
 import time
 import httpx
 import json
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # ---------------------------------------------
 # Trigger - just starts the run
@@ -256,12 +264,161 @@ def run_local_storage(node: dict, state: dict) -> dict:
         return {"storage_appended": new_data}
 
 
+
+# ---------------------------------------------
+# Webhook Trigger - simulated; real triggering
+# is handled externally (e.g., via a /webhook
+# endpoint that starts the workflow execution).
+# When run inside the graph it just passes the
+# incoming payload (stored in state) forward.
+# ---------------------------------------------
+def run_webhook_trigger(node: dict, state: dict) -> dict:
+    """
+    In a real deployment an API endpoint receives
+    the incoming HTTP request and stores the body
+    in state['webhook_payload'] before running the
+    workflow. This runner just exposes that value.
+    """
+    settings = node.get("data", {}).get("settings", {})
+    method   = settings.get("method", "POST").upper()
+    # Payload would already be in state if triggered externally
+    payload  = state.get("webhook_payload", {})
+    return {"webhook_triggered": True, "method": method, "payload": payload}
+
+
+# ---------------------------------------------
+# Cron Scheduler - simulated; real scheduling
+# is handled externally (cron job / APScheduler
+# that calls execute). This runner just records
+# what schedule it is configured for.
+# ---------------------------------------------
+def run_cron_scheduler(node: dict, state: dict) -> dict:
+    """
+    In a real deployment a scheduler (e.g. APScheduler)
+    triggers the workflow at the configured time.
+    This runner documents the schedule in the output.
+    """
+    settings        = node.get("data", {}).get("settings", {})
+    cron_expression = settings.get("cron_expression", "0 9 * * 1-5")
+    timezone        = settings.get("timezone", "UTC")
+    return {
+        "cron_triggered":   True,
+        "cron_expression":  cron_expression,
+        "timezone":         timezone,
+    }
+
+
+# ---------------------------------------------
+# Email - sends via SMTP (TLS on port 587)
+# ---------------------------------------------
+def run_email(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      smtp_host     - e.g. smtp.gmail.com
+      smtp_port     - e.g. 587
+      smtp_user     - your email login
+      smtp_password - app password / SMTP password
+      from_email    - sender address
+      to_email      - recipient address(es), comma-separated
+      subject       - email subject (supports {{placeholders}})
+      body          - email body text (supports {{placeholders}})
+    """
+    settings = node.get("data", {}).get("settings", {})
+
+    # Helper to replace {{key}} placeholders from state
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    smtp_host     = settings.get("smtp_host",     "smtp.gmail.com")
+    smtp_port     = int(settings.get("smtp_port", 587))
+    smtp_user     = settings.get("smtp_user",     "")
+    smtp_password = settings.get("smtp_password", "")
+    from_email    = settings.get("from_email",    smtp_user)
+    to_email      = settings.get("to_email",      "")
+    subject       = interpolate(settings.get("subject", "Workflow Notification"))
+    body_text     = interpolate(settings.get("body",    ""))
+
+    if not to_email:
+        raise ValueError("Email node: 'to_email' is required")
+    if not smtp_user or not smtp_password:
+        raise ValueError("Email node: SMTP credentials (smtp_user, smtp_password) are required")
+
+    # Build MIME message
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"]    = from_email or smtp_user
+    msg["To"]      = to_email
+    msg.attach(MIMEText(body_text, "plain"))
+
+    # Send via STARTTLS
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            recipients = [addr.strip() for addr in to_email.split(",")]
+            server.sendmail(from_email or smtp_user, recipients, msg.as_string())
+    except smtplib.SMTPException as e:
+        raise ValueError(f"Email node SMTP error: {e}")
+    except OSError as e:
+        raise ValueError(f"Email node connection error: {e}")
+
+    return {"email_sent": True, "to": to_email, "subject": subject}
+
+
+# ---------------------------------------------
+# Slack - posts a message via Incoming Webhook
+# ---------------------------------------------
+def run_slack(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      webhook_url - Slack Incoming Webhook URL
+      channel     - optional channel override (e.g. #alerts)
+      username    - display name for the bot
+      message     - message text (supports {{placeholders}})
+    """
+    settings    = node.get("data", {}).get("settings", {})
+    webhook_url = settings.get("webhook_url", "").strip()
+    channel     = settings.get("channel",     "").strip()
+    username    = settings.get("username",    "WorkflowBot")
+    message     = settings.get("message",     "")
+
+    # Replace {{key}} placeholders from state
+    for key, val in state.items():
+        message = message.replace(f"{{{{{key}}}}}", str(val))
+
+    if not webhook_url or webhook_url.startswith("https://hooks.slack.com/services/..."):
+        raise ValueError("Slack node: a valid 'webhook_url' is required")
+
+    payload: dict = {"text": message, "username": username}
+    if channel:
+        payload["channel"] = channel
+
+    try:
+        with httpx.Client(timeout=10) as client:
+            response = client.post(webhook_url, json=payload)
+        if response.status_code != 200:
+            raise ValueError(f"Slack returned HTTP {response.status_code}: {response.text}")
+    except httpx.RequestError as e:
+        raise ValueError(f"Slack node connection error: {e}")
+
+    return {"slack_sent": True, "channel": channel or "(default)", "message": message}
+
+
 # ---------------------------------------------
 # Registry - maps type string -> runner function
 # ---------------------------------------------
 NODE_RUNNERS = {
     "trigger":         run_trigger,
+    "webhook_trigger": run_webhook_trigger,
+    "cron_scheduler":  run_cron_scheduler,
     "http_request":    run_http_request,
+    "email":           run_email,
+    "slack":           run_slack,
     "delay":           run_delay,
     "python_function": run_python_function,
     "condition":       run_condition,
@@ -270,3 +427,4 @@ NODE_RUNNERS = {
     "end":             run_end,
     "local_storage":   run_local_storage,
 }
+

@@ -238,6 +238,39 @@ export default function NodeConfigPanel({ node, nodeTypes, onUpdate, onClose }) 
             Use <code className="font-mono">{"{{status_code}}"}</code>, <code className="font-mono">{"{{response}}"}</code> to print state values.
           </div>
         )}
+        {engineType === "webhook_trigger" && (
+          <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-3 text-xs text-orange-300/70 leading-relaxed">
+            <strong className="text-orange-300/90 block mb-1">How it works</strong>
+            When a real HTTP request is received by your webhook endpoint, the request body
+            is stored in <code className="font-mono">webhook_payload</code> in the workflow state.
+            Use a <strong>Secret Token</strong> to verify requests are genuine.
+          </div>
+        )}
+        {engineType === "cron_scheduler" && (
+          <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-3 text-xs text-orange-300/70 leading-relaxed">
+            <strong className="text-orange-300/90 block mb-1">Cron format</strong>
+            <code className="font-mono block mb-1">minute  hour  day  month  weekday</code>
+            Examples:<br/>
+            <code className="font-mono">0 9 * * 1-5</code> — weekdays at 9am<br/>
+            <code className="font-mono">*/15 * * * *</code> — every 15 minutes<br/>
+            <code className="font-mono">0 0 1 * *</code> — 1st of every month
+          </div>
+        )}
+        {engineType === "email" && (
+          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300/70 leading-relaxed">
+            <strong className="text-blue-300/90 block mb-1">Gmail tip</strong>
+            Use <strong>smtp.gmail.com</strong> port <strong>587</strong>.
+            Create an <em>App Password</em> in your Google Account → Security → 2-Step Verification → App Passwords.
+            Supports <code className="font-mono">{"{{placeholder}}"}</code> in subject &amp; body.
+          </div>
+        )}
+        {engineType === "slack" && (
+          <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-3 text-xs text-purple-300/70 leading-relaxed">
+            <strong className="text-purple-300/90 block mb-1">Setup</strong>
+            Go to <em>api.slack.com/apps</em> → Create App → Incoming Webhooks → Add webhook to workspace.
+            Paste the webhook URL here. Supports <code className="font-mono">{"{{placeholder}}"}</code> in message.
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -58,29 +58,59 @@ async function apiFetch(url, options = {}) {
 
 // ── SVG icon components per node type ────────────────────────────────────
 const NODE_ICONS = {
+  // ── Triggers ──────────────────────────────
   trigger: (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
       <polygon points="5,3 19,12 5,21" />
     </svg>
   ),
+  // Webhook: two arrows looping (incoming HTTP)
+  webhook_trigger: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <path d="M18 16.98h-5.99c-1.66 0-2.99-1.34-2.99-3s1.34-3 2.99-3H20"/>
+      <polyline points="15 14 18 11 15 8"/>
+      <path d="M6 7.02h6c1.66 0 3 1.34 3 3s-1.34 3-3 3H4"/>
+      <polyline points="9 9 6 12 9 15"/>
+    </svg>
+  ),
+  // Cron: calendar with a clock hand
+  cron_scheduler: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <circle cx="16" cy="16" r="4"/>
+      <polyline points="16 14 16 16 17.5 17"/>
+    </svg>
+  ),
+  // ── Actions ───────────────────────────────
   http_request: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
       <circle cx="12" cy="12" r="10"/>
       <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   ),
-  delay: (
+  // Email: envelope
+  email: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <circle cx="12" cy="12" r="10"/>
-      <polyline points="12 6 12 12 16 14"/>
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
     </svg>
   ),
-  python_function: (
+  // Slack: speech bubble
+  slack: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <polyline points="16 18 22 12 16 6"/>
-      <polyline points="8 6 2 12 8 18"/>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <line x1="9" y1="10" x2="15" y2="10"/>
     </svg>
   ),
+  action: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  ),
+  // ── Logic ─────────────────────────────────
   condition: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
       <path d="M6 3v12"/>
@@ -89,6 +119,19 @@ const NODE_ICONS = {
       <path d="M18 9a9 9 0 0 1-9 9"/>
     </svg>
   ),
+  python_function: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <polyline points="16 18 22 12 16 6"/>
+      <polyline points="8 6 2 12 8 18"/>
+    </svg>
+  ),
+  delay: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  // ── Utilities ─────────────────────────────
   logger: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -97,9 +140,11 @@ const NODE_ICONS = {
       <line x1="16" y1="17" x2="8" y2="17"/>
     </svg>
   ),
-  action: (
+  local_storage: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
     </svg>
   ),
   end: (
@@ -122,6 +167,16 @@ const ICON_COLORS = {
   teal:   { box: 'bg-teal-500/20   text-teal-400',   name: 'text-teal-300',   card: 'border-teal-500/20   hover:border-teal-500/40   hover:bg-teal-500/5'   },
 }
 
+// ── Category definitions for the sidebar ─────────────────────────────────
+// accent color shown on the section header
+const CATEGORY_META = {
+  Triggers:  { color: 'text-orange-400', dot: 'bg-orange-500' },
+  Actions:   { color: 'text-blue-400',   dot: 'bg-blue-500'   },
+  Logic:     { color: 'text-yellow-400', dot: 'bg-yellow-500' },
+  Utilities: { color: 'text-teal-400',   dot: 'bg-teal-500'   },
+}
+const CATEGORY_ORDER = ['Triggers', 'Actions', 'Logic', 'Utilities']
+
 // Stable map given to ReactFlow (must live outside component to avoid re-render loops)
 const RF_NODE_TYPES = { workflowNode: WorkflowNode }
 
@@ -129,10 +184,14 @@ let _nodeId = 0
 const newId  = () => `n_${Date.now()}_${_nodeId++}`
 
 // ─────────────────────────────────────────────
-// Sidebar
+// Sidebar – grouped by category, searchable
 // ─────────────────────────────────────────────
 function Sidebar({ nodeTypes }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [search, setSearch]     = useState('')
+  // All categories open by default
+  const [openCats, setOpenCats] = useState(() =>
+    Object.fromEntries(CATEGORY_ORDER.map(c => [c, true]))
+  )
 
   const onDragStart = (e, engineType, def) => {
     e.dataTransfer.setData('flow/engineType', engineType)
@@ -141,83 +200,150 @@ function Sidebar({ nodeTypes }) {
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  const entries = Object.entries(nodeTypes)
+  const toggleCat = (cat) => setOpenCats(prev => ({ ...prev, [cat]: !prev[cat] }))
+
+  // Filter nodes and group by category
+  const q = search.toLowerCase().trim()
+  const grouped = CATEGORY_ORDER.reduce((acc, cat) => {
+    const nodes = Object.entries(nodeTypes).filter(([key, def]) => {
+      const inCat   = (def.category || 'Utilities') === cat
+      const matchQ  = !q ||
+        def.name.toLowerCase().includes(q) ||
+        (def.description || '').toLowerCase().includes(q) ||
+        key.toLowerCase().includes(q)
+      return inCat && matchQ
+    })
+    if (nodes.length > 0) acc[cat] = nodes
+    return acc
+  }, {})
+
+  const totalCount = Object.values(nodeTypes).length
 
   return (
-    <aside className="w-60 bg-[#111] border-r border-white/[0.06] flex flex-col h-full shrink-0">
+    <aside className="w-64 bg-[#0e0e0e] border-r border-white/[0.06] flex flex-col h-full shrink-0">
 
-      {/* ── Dropdown header ── */}
-      <button
-        onClick={() => setCollapsed(c => !c)}
-        className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]
-          hover:bg-white/[0.03] transition-colors w-full text-left shrink-0"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          className="w-3.5 h-3.5 text-white/40">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-        <span className="text-white/60 text-[11px] font-bold uppercase tracking-widest flex-1">
-          Nodes
-        </span>
-        {entries.length > 0 && (
-          <span className="text-white/25 text-[10px] font-mono">{entries.length}</span>
-        )}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-          className={`w-3.5 h-3.5 text-white/30 transition-transform ${collapsed ? '-rotate-90' : ''}`}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
-
-      {/* ── Node list ── */}
-      {!collapsed && (
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 scrollbar-hide">
-          {entries.length === 0 && (
-            <p className="text-white/20 text-xs px-1 italic">Loading…</p>
-          )}
-
-          {entries.map(([key, def]) => {
-            const c = ICON_COLORS[def.color] || ICON_COLORS.blue
-            const icon = NODE_ICONS[key]
-            return (
-              <div
-                key={key}
-                draggable
-                onDragStart={e => onDragStart(e, key, def)}
-                className={`
-                  flex items-center gap-3 p-3 rounded-xl border bg-white/[0.02]
-                  cursor-grab active:cursor-grabbing transition-all duration-150
-                  ${c.card}
-                `}
-              >
-                {/* Icon box */}
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.box}`}>
-                  {icon}
-                </div>
-
-                {/* Text */}
-                <div className="min-w-0">
-                  <div className={`text-sm font-semibold leading-tight ${c.name}`}>
-                    {def.name}
-                  </div>
-                  <div className="text-[10px] text-white/35 font-normal leading-snug mt-0.5 line-clamp-2">
-                    {def.description}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-
-          {/* Hint */}
-          <div className="mt-1 p-2.5 bg-white/[0.03] rounded-xl border border-white/[0.06]">
-            <p className="text-white/25 text-[10px] leading-relaxed">
-              Drag a node onto the canvas to add it.
-            </p>
-          </div>
+      {/* ── Header ── */}
+      <div className="px-4 py-3 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-2 mb-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className="w-3.5 h-3.5 text-white/40 shrink-0">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span className="text-white/60 text-[11px] font-bold uppercase tracking-widest flex-1">Nodes</span>
+          <span className="text-white/25 text-[10px] font-mono">{totalCount}</span>
         </div>
-      )}
+
+        {/* Search input */}
+        <div className="relative">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className="w-3.5 h-3.5 text-white/25 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search nodes…"
+            className="w-full bg-white/[0.04] border border-white/[0.07] text-white/80 text-[11px]
+              rounded-lg pl-8 pr-7 py-1.5 outline-none focus:border-white/20 placeholder:text-white/20
+              transition-colors"
+          />
+          {search && (
+            <button onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 text-sm">
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Category groups ── */}
+      <div className="flex-1 overflow-y-auto py-2 scrollbar-hide">
+        {Object.keys(grouped).length === 0 && (
+          <p className="text-white/20 text-xs px-4 py-3 italic">No nodes match "{search}"</p>
+        )}
+
+        {CATEGORY_ORDER.filter(cat => grouped[cat]).map(cat => {
+          const meta    = CATEGORY_META[cat] || { color: 'text-white/50', dot: 'bg-white/30' }
+          const isOpen  = openCats[cat]
+          const entries = grouped[cat]
+          return (
+            <div key={cat} className="mb-1">
+              {/* Section header — click to collapse/expand */}
+              <button
+                onClick={() => toggleCat(cat)}
+                className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-white/[0.03] transition-colors"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                <span className={`text-[10px] font-bold uppercase tracking-widest flex-1 text-left ${meta.color}`}>
+                  {cat}
+                </span>
+                <span className="text-white/20 text-[10px] font-mono mr-1">{entries.length}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  className={`w-3 h-3 text-white/25 transition-transform ${isOpen ? '' : '-rotate-90'}`}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              {/* Node cards */}
+              {isOpen && (
+                <div className="px-3 pb-1 flex flex-col gap-1.5 mt-0.5">
+                  {entries.map(([key, def]) => {
+                    const c    = ICON_COLORS[def.color] || ICON_COLORS.blue
+                    const icon = NODE_ICONS[key]
+                    return (
+                      <div
+                        key={key}
+                        draggable
+                        onDragStart={e => onDragStart(e, key, def)}
+                        className={`
+                          flex items-center gap-2.5 p-2.5 rounded-xl border bg-white/[0.02]
+                          cursor-grab active:cursor-grabbing transition-all duration-150 select-none
+                          ${c.card}
+                        `}
+                        title={def.description}
+                      >
+                        {/* Icon box */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${c.box}`}>
+                          {icon}
+                        </div>
+                        {/* Label + description */}
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-[12px] font-semibold leading-tight ${c.name}`}>
+                            {def.name}
+                          </div>
+                          <div className="text-[10px] text-white/30 leading-snug mt-0.5 line-clamp-1">
+                            {def.description}
+                          </div>
+                        </div>
+                        {/* Grip dots hint */}
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5 text-white/10 shrink-0">
+                          <circle cx="9"  cy="7"  r="1.2"/>
+                          <circle cx="9"  cy="12" r="1.2"/>
+                          <circle cx="9"  cy="17" r="1.2"/>
+                          <circle cx="15" cy="7"  r="1.2"/>
+                          <circle cx="15" cy="12" r="1.2"/>
+                          <circle cx="15" cy="17" r="1.2"/>
+                        </svg>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {/* Drag hint */}
+        <div className="mx-3 mt-2 p-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+          <p className="text-white/20 text-[10px] leading-relaxed">
+            Drag any node onto the canvas to add it.
+          </p>
+        </div>
+      </div>
     </aside>
   )
 }

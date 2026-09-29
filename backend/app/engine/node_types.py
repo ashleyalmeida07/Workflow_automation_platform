@@ -7,28 +7,86 @@ Each node includes:
   - description: Short tooltip/sidebar description
   - color:       Theme color for the node header
   - engine_type: Key used by the executor to find the right runner
+  - category:    Groups nodes in the sidebar (Triggers / Actions / Logic / Utilities)
   - inputs:      List of input handle labels
   - outputs:     List of output handle labels
   - settings:    Default config fields shown in the side panel
 """
 
 NODE_TYPES = {
+
+    # ── TRIGGERS ─────────────────────────────────────────────────────────
+    # These start a workflow. They have no inputs, only outputs.
+
     "trigger": {
         "icon":        "Play",
-        "name":        "Trigger",
-        "description": "Starts the workflow run",
+        "name":        "Manual Trigger",
+        "description": "Starts the workflow manually when you click Run",
         "color":       "orange",
         "engine_type": "trigger",
+        "category":    "Triggers",
         "inputs":      [],
         "outputs":     ["trigger"],
         "settings":    {},
     },
+
+    "webhook_trigger": {
+        "icon":        "Webhook",
+        "name":        "Webhook Trigger",
+        "description": "Starts the workflow when an HTTP POST hits your webhook URL",
+        "color":       "orange",
+        "engine_type": "webhook_trigger",
+        "category":    "Triggers",
+        "inputs":      [],
+        "outputs":     ["payload"],
+        "settings": {
+            "method": {
+                "type":    "select",
+                "label":   "Allowed HTTP Method",
+                "default": "POST",
+                "options": ["GET", "POST", "PUT", "PATCH"],
+            },
+            "secret": {
+                "type":    "text",
+                "label":   "Secret Token (optional verification)",
+                "default": "",
+            },
+        },
+    },
+
+    "cron_scheduler": {
+        "icon":        "CalendarClock",
+        "name":        "Cron Scheduler",
+        "description": "Run the workflow automatically on a cron schedule (e.g. every day at 9am)",
+        "color":       "orange",
+        "engine_type": "cron_scheduler",
+        "category":    "Triggers",
+        "inputs":      [],
+        "outputs":     ["trigger"],
+        "settings": {
+            "cron_expression": {
+                "type":    "text",
+                "label":   "Cron Expression",
+                "default": "0 9 * * 1-5",
+            },
+            "timezone": {
+                "type":    "text",
+                "label":   "Timezone",
+                "default": "UTC",
+            },
+        },
+    },
+
+    # ── ACTIONS ──────────────────────────────────────────────────────────
+    # These perform side effects: HTTP calls, emails, Slack messages, etc.
+
     "http_request": {
         "icon":        "Globe",
         "name":        "HTTP Request",
         "description": "Make an HTTP GET/POST call. Supports {{key}} placeholders in URL, Headers, and Body.",
         "color":       "blue",
         "engine_type": "http_request",
+        "category":    "Actions",
         "inputs":      ["body"],
         "outputs":     ["response", "status_code"],
         "settings": {
@@ -39,37 +97,70 @@ NODE_TYPES = {
             "body":    {"type": "json",   "label": "Body (JSON)",    "default": ""},
         },
     },
-    "delay": {
-        "icon":        "Clock",
-        "name":        "Delay",
-        "description": "Pause the workflow for N seconds",
-        "color":       "gray",
-        "engine_type": "delay",
+
+    "email": {
+        "icon":        "Mail",
+        "name":        "Send Email",
+        "description": "Send an email via SMTP. Supports {{key}} placeholders in subject & body.",
+        "color":       "blue",
+        "engine_type": "email",
+        "category":    "Actions",
         "inputs":      ["input"],
         "outputs":     ["output"],
         "settings": {
-            "seconds": {"type": "number", "label": "Seconds", "default": "1"},
+            "smtp_host":     {"type": "text",     "label": "SMTP Host",                    "default": "smtp.gmail.com"},
+            "smtp_port":     {"type": "number",   "label": "SMTP Port",                    "default": "587"},
+            "smtp_user":     {"type": "text",     "label": "SMTP Username (your email)",   "default": ""},
+            "smtp_password": {"type": "text",     "label": "SMTP Password / App Password", "default": ""},
+            "from_email":    {"type": "text",     "label": "From Email",                   "default": ""},
+            "to_email":      {"type": "text",     "label": "To Email",                     "default": ""},
+            "subject":       {"type": "text",     "label": "Subject",                      "default": "Workflow Notification"},
+            "body":          {"type": "textarea", "label": "Body",
+                              "default": "Hello,\n\nYour workflow ran successfully.\n\nStatus: {{status_code}}"},
         },
     },
-    "python_function": {
-        "icon":        "Code",
-        "name":        "Python Function",
-        "description": "Run a Python snippet. Read from state, write output into result.",
-        "color":       "indigo",
-        "engine_type": "python_function",
+
+    "slack": {
+        "icon":        "MessageSquare",
+        "name":        "Slack Message",
+        "description": "Post a message to a Slack channel via an Incoming Webhook URL",
+        "color":       "purple",
+        "engine_type": "slack",
+        "category":    "Actions",
         "inputs":      ["input"],
         "outputs":     ["output"],
         "settings": {
-            "code": {"type": "textarea", "label": "Python Code",
-                     "default": "result[\"output\"] = state.get(\"status_code\", 0)"},
+            "webhook_url": {"type": "text",     "label": "Slack Webhook URL",          "default": "https://hooks.slack.com/services/..."},
+            "channel":     {"type": "text",     "label": "Channel (optional override)", "default": ""},
+            "username":    {"type": "text",     "label": "Bot Username",               "default": "WorkflowBot"},
+            "message":     {"type": "textarea", "label": "Message",                    "default": "Workflow update: {{status_code}}"},
         },
     },
+
+    "action": {
+        "icon":        "Zap",
+        "name":        "Action",
+        "description": "Display a message with {{state_key}} placeholders",
+        "color":       "green",
+        "engine_type": "action",
+        "category":    "Actions",
+        "inputs":      ["input"],
+        "outputs":     ["output"],
+        "settings": {
+            "message": {"type": "text", "label": "Message", "default": "Action executed"},
+        },
+    },
+
+    # ── LOGIC ─────────────────────────────────────────────────────────────
+    # These control how the workflow branches or transforms data.
+
     "condition": {
         "icon":        "GitBranch",
         "name":        "Condition",
         "description": "Branch based on a value in the state",
         "color":       "yellow",
         "engine_type": "condition",
+        "category":    "Logic",
         "inputs":      ["input"],
         "outputs":     ["true", "false"],
         "settings": {
@@ -79,12 +170,46 @@ NODE_TYPES = {
             "value":    {"type": "text",   "label": "Compare value", "default": "200"},
         },
     },
+
+    "python_function": {
+        "icon":        "Code",
+        "name":        "Python Function",
+        "description": "Run a Python snippet. Read from state, write output into result.",
+        "color":       "indigo",
+        "engine_type": "python_function",
+        "category":    "Logic",
+        "inputs":      ["input"],
+        "outputs":     ["output"],
+        "settings": {
+            "code": {"type": "textarea", "label": "Python Code",
+                     "default": "result[\"output\"] = state.get(\"status_code\", 0)"},
+        },
+    },
+
+    "delay": {
+        "icon":        "Clock",
+        "name":        "Delay",
+        "description": "Pause the workflow for N seconds",
+        "color":       "gray",
+        "engine_type": "delay",
+        "category":    "Logic",
+        "inputs":      ["input"],
+        "outputs":     ["output"],
+        "settings": {
+            "seconds": {"type": "number", "label": "Seconds", "default": "1"},
+        },
+    },
+
+    # ── UTILITIES ─────────────────────────────────────────────────────────
+    # Logging, storage, and terminal nodes.
+
     "logger": {
         "icon":        "FileText",
         "name":        "Logger",
         "description": "Log a message. Use {{key}} to insert state values.",
         "color":       "teal",
         "engine_type": "logger",
+        "category":    "Utilities",
         "inputs":      ["input"],
         "outputs":     ["output"],
         "settings": {
@@ -93,34 +218,14 @@ NODE_TYPES = {
                         "options": ["info", "warning", "error"]},
         },
     },
-    "action": {
-        "icon":        "Zap",
-        "name":        "Action",
-        "description": "Display a message with {{state_key}} placeholders",
-        "color":       "green",
-        "engine_type": "action",
-        "inputs":      ["input"],
-        "outputs":     ["output"],
-        "settings": {
-            "message": {"type": "text", "label": "Message", "default": "Action executed"},
-        },
-    },
-    "end": {
-        "icon":        "CheckCircle",
-        "name":        "End",
-        "description": "Marks the final node - collects the full state",
-        "color":       "purple",
-        "engine_type": "end",
-        "inputs":      ["input"],
-        "outputs":     [],
-        "settings":    {},
-    },
+
     "local_storage": {
         "icon":        "Database",
         "name":        "Local Storage",
-        "description": "Store or retrieve data from a local JSON file (acts like Google Sheets for MVP)",
-        "color":       "emerald",
+        "description": "Store or retrieve data from a local JSON file",
+        "color":       "teal",
         "engine_type": "local_storage",
+        "category":    "Utilities",
         "inputs":      ["input"],
         "outputs":     ["output"],
         "settings": {
@@ -129,5 +234,17 @@ NODE_TYPES = {
             "file_name": {"type": "text", "label": "File Name", "default": "storage.json"},
             "data":      {"type": "text", "label": "Data (JSON/Text to append)", "default": "{}"},
         },
+    },
+
+    "end": {
+        "icon":        "CheckCircle",
+        "name":        "End",
+        "description": "Marks the final node — collects the full state",
+        "color":       "purple",
+        "engine_type": "end",
+        "category":    "Utilities",
+        "inputs":      ["input"],
+        "outputs":     [],
+        "settings":    {},
     },
 }
