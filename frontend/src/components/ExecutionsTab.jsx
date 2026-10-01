@@ -3,7 +3,9 @@
   Bottom panel showing all past executions in a clean table.
   Click a row to see step details in a side drawer.
 */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
+import { DarkModeCtx } from "../pages/Flow";
+import { T } from "../theme";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 function authHeaders() {
@@ -29,35 +31,35 @@ function duration(start, end) {
 }
 
 // ── Step detail drawer ─────────────────────────────────────────────────────
-function StepDrawer({ ex, onClose }) {
+function StepDrawer({ ex, onClose, t }) {
   return (
     <div className="absolute inset-0 z-20 flex">
       {/* backdrop */}
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
       {/* panel */}
-      <div className="w-[420px] bg-[#111] border-l border-white/10 flex flex-col h-full overflow-hidden">
+      <div className={`w-[420px] ${t.bgPanel} border-l ${t.border} flex flex-col h-full overflow-hidden transition-colors`}>
         {/* header */}
-        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
+        <div className={`px-4 py-3 border-b ${t.border} flex items-center justify-between shrink-0`}>
           <div>
-            <p className="text-white font-semibold text-sm">Execution #{ex.id}</p>
-            <p className="text-white/40 text-xs mt-0.5">{fmt(ex.started_at)}</p>
+            <p className={`${t.textPrimary} font-semibold text-sm`}>Execution #{ex.id}</p>
+            <p className={`${t.textMuted} text-xs mt-0.5`}>{fmt(ex.started_at)}</p>
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70 text-lg">✕</button>
+          <button onClick={onClose} className={`${t.textMuted} hover:${t.textPrimary} text-lg transition-colors`}>✕</button>
         </div>
 
         {/* summary chips */}
-        <div className="px-4 py-3 flex gap-3 border-b border-white/[0.06] shrink-0">
+        <div className={`px-4 py-3 flex gap-3 border-b ${t.border} shrink-0`}>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full
             ${ex.status === "completed"
               ? "bg-green-500/15 text-green-400 border border-green-500/25"
               : "bg-red-500/15 text-red-400 border border-red-500/25"}`}>
             {ex.status}
           </span>
-          <span className="text-xs text-white/40 bg-white/5 px-2.5 py-1 rounded-full">
+          <span className={`text-xs ${t.textMuted} ${t.bgInfo} border ${t.borderInput} px-2.5 py-1 rounded-full`}>
             {ex.steps?.length ?? 0} steps
           </span>
-          <span className="text-xs text-white/40 bg-white/5 px-2.5 py-1 rounded-full">
+          <span className={`text-xs ${t.textMuted} ${t.bgInfo} border ${t.borderInput} px-2.5 py-1 rounded-full`}>
             {duration(ex.started_at, ex.finished_at)}
           </span>
         </div>
@@ -74,29 +76,29 @@ function StepDrawer({ ex, onClose }) {
             const ok = !step.error;
             return (
               <div key={i} className={`mx-4 mt-3 rounded-xl border overflow-hidden
-                ${ok ? "border-white/[0.06]" : "border-red-500/25"}`}>
+                ${ok ? t.border : "border-red-500/25"}`}>
                 {/* step header */}
                 <div className={`flex items-center gap-2.5 px-3 py-2
-                  ${ok ? "bg-white/[0.03]" : "bg-red-500/10"}`}>
-                  <span className={`text-xs ${ok ? "text-green-400" : "text-red-400"}`}>
+                  ${ok ? t.bgInfo : "bg-red-500/10"}`}>
+                  <span className={`text-xs ${ok ? "text-green-500" : "text-red-500"}`}>
                     {ok ? "✓" : "✕"}
                   </span>
-                  <span className="text-white/80 text-sm font-medium">{step.label}</span>
-                  <span className="text-white/25 text-[10px] font-mono ml-auto">({step.type})</span>
+                  <span className={`${t.textPrimary} text-sm font-medium`}>{step.label}</span>
+                  <span className={`${t.textFaint} text-[10px] font-mono ml-auto`}>({step.type})</span>
                 </div>
 
                 {/* step body */}
-                <div className="px-3 py-2 bg-black/20">
+                <div className={`px-3 py-2 ${t.bgCode}`}>
                   {step.error && (
-                    <p className="text-red-400 text-xs font-mono">{step.error}</p>
+                    <p className="text-red-500 text-xs font-mono">{step.error}</p>
                   )}
                   {!step.error && step.output && Object.keys(step.output).length > 0 && (
-                    <pre className="text-white/50 text-[11px] font-mono whitespace-pre-wrap break-all leading-relaxed">
+                    <pre className={`${t.textMuted} text-[11px] font-mono whitespace-pre-wrap break-all leading-relaxed`}>
                       {JSON.stringify(step.output, null, 2)}
                     </pre>
                   )}
                   {!step.error && (!step.output || Object.keys(step.output).length === 0) && (
-                    <p className="text-white/20 text-xs italic">No output</p>
+                    <p className={`${t.textFaint} text-xs italic`}>No output</p>
                   )}
                 </div>
               </div>
@@ -104,7 +106,7 @@ function StepDrawer({ ex, onClose }) {
           })}
 
           {(!ex.steps || ex.steps.length === 0) && (
-            <p className="text-white/25 text-xs px-4 py-4 italic">No step details.</p>
+            <p className={`${t.textFaint} text-xs px-4 py-4 italic`}>No step details.</p>
           )}
 
           <div className="h-4" />
@@ -116,6 +118,9 @@ function StepDrawer({ ex, onClose }) {
 
 // ── Main panel ─────────────────────────────────────────────────────────────
 export default function ExecutionsTab({ workflowId, lastResult }) {
+  const { dark } = useContext(DarkModeCtx);
+  const t = dark ? T.dark : T.light;
+
   const [open,       setOpen]       = useState(false);
   const [executions, setExecutions] = useState([]);
   const [loading,    setLoading]    = useState(false);
@@ -160,7 +165,7 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
   return (
     <div
       style={{ height: open ? height : 44 }}
-      className="border-t-2 border-white/20 bg-[#161616] flex flex-col shrink-0 relative"
+      className={`border-t ${t.border} ${t.bgPanel} flex flex-col shrink-0 relative transition-colors`}
     >
       {/* ── Drag handle ── */}
       <div
@@ -169,32 +174,32 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
           cursor-ns-resize group z-10"
         title="Drag to resize"
       >
-        <div className="w-16 h-1 rounded-full bg-white/20 group-hover:bg-white/50 transition-colors" />
+        <div className={`w-16 h-1 rounded-full ${t.bgInfo} group-hover:bg-white/50 transition-colors border ${t.border}`} />
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="h-11 flex items-center px-4 gap-3 shrink-0 bg-[#1a1a1a] border-b border-white/10">
+      <div className={`h-11 flex items-center px-4 gap-3 shrink-0 ${t.bgCanvas} border-b ${t.border}`}>
         <button onClick={() => setOpen(o => !o)}
           className="flex items-center gap-2 text-left flex-1">
           {/* Icon */}
-          <svg className="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none"
+          <svg className={`w-3.5 h-3.5 ${t.iconColor}`} viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          <span className="text-white/80 text-xs font-bold uppercase tracking-widest">
+          <span className={`${t.textSearch} text-xs font-bold uppercase tracking-widest`}>
             Executions
           </span>
           {executions.length > 0 && (
-            <span className="bg-white/15 text-white/70 text-[10px] font-mono px-2 py-0.5 rounded-full border border-white/10">
+            <span className={`${t.bgInfo} ${t.textMuted} text-[10px] font-mono px-2 py-0.5 rounded-full border ${t.border}`}>
               {executions.length}
             </span>
           )}
-          <span className="text-white/40 text-xs ml-1">{open ? "▾" : "▴"}</span>
+          <span className={`${t.textMuted} text-xs ml-1`}>{open ? "▾" : "▴"}</span>
         </button>
 
         {open && (
           <button onClick={load}
-            className="text-white/40 hover:text-white/80 text-sm transition-colors px-1" title="Refresh">
+            className={`${t.textMuted} hover:${t.textPrimary} text-sm transition-colors px-1`} title="Refresh">
             ↻
           </button>
         )}
@@ -204,28 +209,28 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
       {open && (
         <div className="flex-1 overflow-auto">
           <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-0 bg-[#0d0d0d] z-10">
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2 w-16">ID</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2 w-28">Status</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2">Started At</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2">Finished At</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2 w-24">Duration</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2 w-20">Steps</th>
-                <th className="text-left text-[10px] font-bold uppercase tracking-widest text-white/25 px-4 py-2 w-24">Details</th>
+            <thead className={`sticky top-0 ${t.bgPanel} z-10`}>
+              <tr className={`border-b ${t.border}`}>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2 w-16`}>ID</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2 w-28`}>Status</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2`}>Started At</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2`}>Finished At</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2 w-24`}>Duration</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2 w-20`}>Steps</th>
+                <th className={`text-left text-[10px] font-bold uppercase tracking-widest ${t.textCount} px-4 py-2 w-24`}>Details</th>
               </tr>
             </thead>
 
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-4 text-white/25 text-xs italic">Loading…</td>
+                  <td colSpan={7} className={`px-4 py-4 ${t.textFaint} text-xs italic`}>Loading…</td>
                 </tr>
               )}
 
               {!loading && executions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-4 text-white/25 text-xs italic">
+                  <td colSpan={7} className={`px-4 py-4 ${t.textFaint} text-xs italic`}>
                     No executions yet. Hit Run to start one.
                   </td>
                 </tr>
@@ -235,36 +240,36 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
                 const ok = ex.status === "completed";
                 return (
                   <tr key={ex.id}
-                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                    className={`border-b ${t.border} ${t.sectionHover} transition-colors`}>
 
                     {/* ID */}
-                    <td className="px-4 py-2.5 text-white/40 font-mono text-xs">#{ex.id}</td>
+                    <td className={`px-4 py-2.5 ${t.textMuted} font-mono text-xs`}>#{ex.id}</td>
 
                     {/* Status */}
                     <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold
                         px-2 py-0.5 rounded-full
                         ${ok
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-red-500/15 text-red-400"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-green-400" : "bg-red-400"}`} />
+                          ? "bg-green-500/15 text-green-500"
+                          : "bg-red-500/15 text-red-500"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-green-500" : "bg-red-500"}`} />
                         {ex.status}
                       </span>
                     </td>
 
                     {/* Started At */}
-                    <td className="px-4 py-2.5 text-white/60 text-xs">{fmt(ex.started_at)}</td>
+                    <td className={`px-4 py-2.5 ${t.textSecondary} text-xs`}>{fmt(ex.started_at)}</td>
 
                     {/* Finished At */}
-                    <td className="px-4 py-2.5 text-white/60 text-xs">{fmt(ex.finished_at)}</td>
+                    <td className={`px-4 py-2.5 ${t.textSecondary} text-xs`}>{fmt(ex.finished_at)}</td>
 
                     {/* Duration */}
-                    <td className="px-4 py-2.5 text-white/40 text-xs font-mono">
+                    <td className={`px-4 py-2.5 ${t.textMuted} text-xs font-mono`}>
                       {duration(ex.started_at, ex.finished_at)}
                     </td>
 
                     {/* Steps */}
-                    <td className="px-4 py-2.5 text-white/40 text-xs font-mono">
+                    <td className={`px-4 py-2.5 ${t.textMuted} text-xs font-mono`}>
                       {ex.steps?.length ?? 0}
                     </td>
 
@@ -272,8 +277,8 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
                     <td className="px-4 py-2.5">
                       <button
                         onClick={() => setSelected(ex)}
-                        className="text-xs text-white/40 hover:text-white/80 border border-white/10
-                          hover:border-white/25 px-2.5 py-1 rounded-lg transition-colors">
+                        className={`text-xs ${t.textMuted} hover:${t.textPrimary} border ${t.border}
+                          hover:${t.borderCtx} px-2.5 py-1 rounded-lg transition-colors`}>
                         View →
                       </button>
                     </td>
@@ -287,7 +292,7 @@ export default function ExecutionsTab({ workflowId, lastResult }) {
 
       {/* Step detail side drawer */}
       {selected && (
-        <StepDrawer ex={selected} onClose={() => setSelected(null)} />
+        <StepDrawer ex={selected} onClose={() => setSelected(null)} t={t} />
       )}
     </div>
   );

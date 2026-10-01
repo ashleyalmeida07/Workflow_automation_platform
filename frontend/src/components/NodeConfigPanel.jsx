@@ -3,7 +3,9 @@
   - Horizontally resizable via a drag handle on the left edge
   - JSON / textarea fields styled like a VS Code dark editor
 */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useContext } from "react";
+import { DarkModeCtx } from "../pages/Flow";
+import { T } from "../theme";
 
 const ACCENT = {
   orange: "border-orange-500/50 text-orange-300",
@@ -21,7 +23,7 @@ const INPUT_BASE =
   "w-full bg-[#141414] border border-white/[0.08] text-white/90 text-sm rounded-xl px-3 py-2 outline-none " +
   "focus:border-white/25 transition-colors placeholder:text-white/20";
 
-function CodeField({ label, language, value, onChange, rows }) {
+function CodeField({ label, language, value, onChange, rows, t }) {
   const [copied, setCopied] = useState(false);
   language = language || "json";
   rows = rows || 5;
@@ -38,21 +40,23 @@ function CodeField({ label, language, value, onChange, rows }) {
 
   const lineCount = (value || " ").split("\n").length;
 
+  const LABEL = `${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-1.5 block`;
+
   return (
     <div>
       <label className={LABEL}>{label}</label>
-      <div className="rounded-xl overflow-hidden border border-white/[0.08] bg-[#0d1117]">
-        <div className="flex items-center justify-between px-3 py-1.5 bg-[#161b22] border-b border-white/[0.06]">
+      <div className={`rounded-xl overflow-hidden border ${t.borderInput} ${t.bgCode}`}>
+        <div className={`flex items-center justify-between px-3 py-1.5 ${t.bgCodeHeader} border-b ${t.borderInput}`}>
           <span className={"text-[10px] font-bold uppercase tracking-widest " + langColor}>{language}</span>
-          <button onClick={handleCopy} className="flex items-center gap-1 text-white/30 hover:text-white/70 transition-colors text-[10px]">
+          <button onClick={handleCopy} className={`flex items-center gap-1 ${t.textMuted} ${t.searchClear} transition-colors text-[10px]`}>
             {copied
-              ? <span className="text-green-400 flex items-center gap-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>
+              ? <span className="text-green-500 flex items-center gap-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>
               : <span className="flex items-center gap-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</span>
             }
           </button>
         </div>
         <div className="flex" style={{fontFamily:"'JetBrains Mono','Fira Code',monospace"}}>
-          <div className="select-none text-right pr-2.5 pl-2.5 py-3 text-[#4d5566] text-[11px] leading-6 bg-[#0d1117] border-r border-white/[0.05] shrink-0" style={{minWidth:"2.4rem"}}>
+          <div className={`select-none text-right pr-2.5 pl-2.5 py-3 ${t.textCodeLine} text-[11px] leading-6 ${t.bgCode} border-r ${t.borderInput} shrink-0`} style={{minWidth:"2.4rem"}}>
             {Array.from({length: lineCount}, (_, i) => <div key={i}>{i + 1}</div>)}
           </div>
           <textarea
@@ -60,7 +64,7 @@ function CodeField({ label, language, value, onChange, rows }) {
             value={value != null ? value : ""}
             onChange={e => onChange(e.target.value)}
             spellCheck={false}
-            className="flex-1 min-w-0 bg-[#0d1117] text-[#e6edf3] text-[12px] leading-6 py-3 px-3 outline-none resize-y placeholder:text-white/20"
+            className={`flex-1 min-w-0 ${t.bgCode} ${t.textCode} text-[12px] leading-6 py-3 px-3 outline-none resize-y ${t.textPlaceholder}`}
           />
         </div>
       </div>
@@ -68,20 +72,23 @@ function CodeField({ label, language, value, onChange, rows }) {
   );
 }
 
-function Field({ label, def, value, onChange }) {
+function Field({ label, def, value, onChange, t }) {
+  const LABEL = `${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-1.5 block`;
+  const INPUT_BASE = `w-full ${t.bgInput} border ${t.borderInput} ${t.textPrimary} text-sm rounded-xl px-3 py-2 outline-none ${t.focusBorder} transition-colors ${t.textPlaceholder}`;
+
   const val = value != null ? value : (def && def.default != null ? def.default : "");
   if (def && def.type === "select") {
     return (
       <div>
         <label className={LABEL}>{label}</label>
         <select value={val} onChange={e => onChange(e.target.value)} className={INPUT_BASE + " cursor-pointer"}>
-          {(def.options || []).map(opt => <option key={opt} value={opt} className="bg-[#141414]">{opt}</option>)}
+          {(def.options || []).map(opt => <option key={opt} value={opt} className={t.bgInput}>{opt}</option>)}
         </select>
       </div>
     );
   }
-  if (def && def.type === "textarea") return <CodeField label={label} language="python" value={val} onChange={onChange} rows={7} />;
-  if (def && def.type === "json")     return <CodeField label={label} language="json"   value={val} onChange={onChange} rows={5} />;
+  if (def && def.type === "textarea") return <CodeField label={label} language="python" value={val} onChange={onChange} rows={7} t={t} />;
+  if (def && def.type === "json")     return <CodeField label={label} language="json"   value={val} onChange={onChange} rows={5} t={t} />;
   if (def && def.type === "number") {
     return (
       <div>
@@ -98,11 +105,11 @@ function Field({ label, def, value, onChange }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, t }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-white/25 text-[10px] font-bold uppercase tracking-widest w-20 shrink-0 pt-0.5">{label}</span>
-      <span className="text-white/55 text-xs leading-relaxed font-mono">{value}</span>
+      <span className={`${t.textFaint} text-[10px] font-bold uppercase tracking-widest w-20 shrink-0 pt-0.5`}>{label}</span>
+      <span className={`${t.textSecondary} text-xs leading-relaxed font-mono break-all`}>{value}</span>
     </div>
   );
 }
@@ -112,6 +119,9 @@ const MAX_W = 680;
 const DEF_W = 340;
 
 export default function NodeConfigPanel({ node, nodeTypes, onUpdate, onClose }) {
+  const { dark } = useContext(DarkModeCtx);
+  const t = dark ? T.dark : T.light;
+
   if (!node) return null;
 
   const engineType = node.data && node.data.engine_type;
@@ -154,62 +164,65 @@ export default function NodeConfigPanel({ node, nodeTypes, onUpdate, onClose }) 
   const BODYLESS      = ["GET","HEAD","DELETE","OPTIONS","TRACE"];
   const currentMethod = ((values["method"] || "GET")).toUpperCase();
 
+  const LABEL = `${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-1.5 block`;
+  const INPUT_BASE = `w-full ${t.bgInput} border ${t.borderInput} ${t.textPrimary} text-sm rounded-xl px-3 py-2 outline-none ${t.focusBorder} transition-colors ${t.textPlaceholder}`;
+
   return (
-    <aside className="relative bg-[#0c0c0c] border-l border-white/[0.06] flex flex-col h-full shrink-0 overflow-hidden" style={{width: width}}>
-      <div onMouseDown={onDragStart} className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-50 hover:bg-white/[0.06] transition-colors group" title="Drag to resize">
-        <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-1 h-10 rounded-full bg-white/0 group-hover:bg-white/40 transition-all duration-200" />
+    <aside className={`relative ${t.bgPanel} border-l ${t.border} flex flex-col h-full shrink-0 overflow-hidden transition-colors`} style={{width: width}}>
+      <div onMouseDown={onDragStart} className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-50 hover:bg-black/10 dark:hover:bg-white/[0.06] transition-colors group" title="Drag to resize">
+        <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-1 h-10 rounded-full bg-transparent group-hover:bg-black/30 dark:group-hover:bg-white/40 transition-all duration-200" />
       </div>
 
-      <div className={"px-5 py-4 border-b border-white/[0.06] border-l-2 ml-2 " + accent}>
+      <div className={`px-5 py-4 border-b ${t.border} border-l-2 ml-2 ${accent}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest mb-1">{engineType && engineType.replace(/_/g," ")}</p>
-            <h2 className="text-white font-semibold text-sm truncate">{label || (node.data && node.data.label)}</h2>
-            <p className="text-white/35 text-xs mt-1 leading-relaxed">{typeDef.description}</p>
+            <p className={`${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-1`}>{engineType && engineType.replace(/_/g," ")}</p>
+            <h2 className={`${t.textPrimary} font-semibold text-sm truncate`}>{label || (node.data && node.data.label)}</h2>
+            <p className={`${t.textMuted} text-xs mt-1 leading-relaxed`}>{typeDef.description}</p>
           </div>
-          <button onClick={onClose} className="text-white/25 hover:text-white/70 transition-colors text-xl leading-none shrink-0 mt-0.5" title="Close">&times;</button>
+          <button onClick={onClose} className={`${t.textFaint} hover:${t.textPrimary} transition-colors text-xl leading-none shrink-0 mt-0.5`} title="Close">&times;</button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5 ml-2 scrollbar-hide">
         <section>
-          <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest mb-3">Node Info</p>
-          <div className="bg-white/[0.025] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-2.5">
+          <p className={`${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-3`}>Node Info</p>
+          <div className={`${t.bgInfo} border ${t.border} rounded-xl p-3 flex flex-col gap-2.5`}>
             <div>
               <label className={LABEL}>Node Name</label>
               <input type="text" value={label} onChange={e => handleLabelChange(e.target.value)} placeholder="e.g. Fetch User Data" className={INPUT_BASE} />
             </div>
             <div className="flex flex-col gap-1.5 mt-1">
-              <InfoRow label="Type"    value={engineType} />
-              <InfoRow label="Node ID" value={node.id}    />
-              {typeDef.inputs  && typeDef.inputs.length  > 0 && <InfoRow label="Inputs"  value={typeDef.inputs.join(", ")}  />}
-              {typeDef.outputs && typeDef.outputs.length > 0 && <InfoRow label="Outputs" value={typeDef.outputs.join(", ")} />}
+              <InfoRow label="Type"    value={engineType} t={t} />
+              <InfoRow label="Node ID" value={node.id}    t={t} />
+              {typeDef.inputs  && typeDef.inputs.length  > 0 && <InfoRow label="Inputs"  value={typeDef.inputs.join(", ")}  t={t} />}
+              {typeDef.outputs && typeDef.outputs.length > 0 && <InfoRow label="Outputs" value={typeDef.outputs.join(", ")} t={t} />}
             </div>
           </div>
         </section>
 
         {hasSettings && (
           <section>
-            <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest mb-3">Configuration</p>
+            <p className={`${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-3`}>Configuration</p>
             <div className="flex flex-col gap-4">
               {Object.entries(settings).map(function([key, def]) {
                 if (key === "body" && engineType === "http_request" && BODYLESS.indexOf(currentMethod) >= 0) {
                   return (
                     <div key={key}>
                       <label className={LABEL}>Body (JSON)</label>
-                      <div className="w-full bg-white/[0.02] border border-white/[0.05] text-white/20 text-xs rounded-xl px-3 py-2 italic">Not applicable for {currentMethod} requests</div>
+                      <div className={`w-full ${t.bgInfo} border ${t.border} ${t.textMuted} text-xs rounded-xl px-3 py-2 italic`}>Not applicable for {currentMethod} requests</div>
                     </div>
                   );
                 }
-                return <Field key={key} label={def.label} def={def} value={values[key]} onChange={function(val){ handleSettingChange(key, val); }} />;
+                return <Field key={key} label={def.label} def={def} value={values[key]} onChange={function(val){ handleSettingChange(key, val); }} t={t} />;
               })}
             </div>
           </section>
         )}
 
         {!hasSettings && (
-          <div className="bg-white/[0.025] border border-white/[0.06] rounded-xl p-4 text-center">
-            <p className="text-white/25 text-xs">This node has no configurable settings.</p>
+          <div className={`${t.bgInfo} border ${t.border} rounded-xl p-4 text-center`}>
+            <p className={`${t.textFaint} text-xs`}>This node has no configurable settings.</p>
           </div>
         )}
 

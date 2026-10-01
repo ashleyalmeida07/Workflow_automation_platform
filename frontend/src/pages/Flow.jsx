@@ -33,6 +33,7 @@ import WorkflowNode         from '../components/WorkflowNode'
 import NodeConfigPanel      from '../components/NodeConfigPanel'
 import ExecutionResultPanel from '../components/ExecutionResultPanel'
 import ExecutionsTab        from '../components/ExecutionsTab'
+import { T } from '../theme'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -233,9 +234,9 @@ const newId  = () => `n_${Date.now()}_${_nodeId++}`
 // ─────────────────────────────────────────────
 // Sidebar – grouped by category, searchable
 // ─────────────────────────────────────────────
-function Sidebar({ nodeTypes }) {
+function Sidebar({ nodeTypes, dark }) {
+  const t = dark ? T.dark : T.light
   const [search, setSearch]     = useState('')
-  // All categories open by default
   const [openCats, setOpenCats] = useState(() =>
     Object.fromEntries(CATEGORY_ORDER.map(c => [c, true]))
   )
@@ -249,12 +250,11 @@ function Sidebar({ nodeTypes }) {
 
   const toggleCat = (cat) => setOpenCats(prev => ({ ...prev, [cat]: !prev[cat] }))
 
-  // Filter nodes and group by category
   const q = search.toLowerCase().trim()
   const grouped = CATEGORY_ORDER.reduce((acc, cat) => {
     const nodes = Object.entries(nodeTypes).filter(([key, def]) => {
-      const inCat   = (def.category || 'Utilities') === cat
-      const matchQ  = !q ||
+      const inCat  = (def.category || 'Utilities') === cat
+      const matchQ = !q ||
         def.name.toLowerCase().includes(q) ||
         (def.description || '').toLowerCase().includes(q) ||
         key.toLowerCase().includes(q)
@@ -267,26 +267,26 @@ function Sidebar({ nodeTypes }) {
   const totalCount = Object.values(nodeTypes).length
 
   return (
-    <aside className="w-64 bg-[#0e0e0e] border-r border-white/[0.06] flex flex-col h-full shrink-0">
+    <aside className={`w-64 ${t.bgPanel} border-r ${t.border} flex flex-col h-full shrink-0 transition-colors duration-200`}>
 
       {/* ── Header ── */}
-      <div className="px-4 py-3 border-b border-white/[0.06] shrink-0">
+      <div className={`px-4 py-3 border-b ${t.border} shrink-0`}>
         <div className="flex items-center gap-2 mb-3">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            className="w-3.5 h-3.5 text-white/40 shrink-0">
+            className={`w-3.5 h-3.5 ${t.iconColor} shrink-0`}>
             <rect x="3" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="3" width="7" height="7" rx="1"/>
             <rect x="3" y="14" width="7" height="7" rx="1"/>
             <rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
-          <span className="text-white/60 text-[11px] font-bold uppercase tracking-widest flex-1">Nodes</span>
-          <span className="text-white/25 text-[10px] font-mono">{totalCount}</span>
+          <span className={`${t.textSecondary} text-[11px] font-bold uppercase tracking-widest flex-1`}>Nodes</span>
+          <span className={`${t.textCount} text-[10px] font-mono`}>{totalCount}</span>
         </div>
 
-        {/* Search input */}
+        {/* Search */}
         <div className="relative">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            className="w-3.5 h-3.5 text-white/25 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+            className={`w-3.5 h-3.5 ${t.textMuted} absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none`}>
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
@@ -294,13 +294,13 @@ function Sidebar({ nodeTypes }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search nodes…"
-            className="w-full bg-white/[0.04] border border-white/[0.07] text-white/80 text-[11px]
-              rounded-lg pl-8 pr-7 py-1.5 outline-none focus:border-white/20 placeholder:text-white/20
-              transition-colors"
+            className={`w-full ${t.bgInput} border ${t.borderInput} ${t.textSearch} text-[11px]
+              rounded-lg pl-8 pr-7 py-1.5 outline-none ${t.focusBorder} ${t.textPlaceholder}
+              transition-colors`}
           />
           {search && (
             <button onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 text-sm">
+              className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${t.searchClear} text-sm`}>
               ×
             </button>
           )}
@@ -310,32 +310,30 @@ function Sidebar({ nodeTypes }) {
       {/* ── Category groups ── */}
       <div className="flex-1 overflow-y-auto py-2 scrollbar-hide">
         {Object.keys(grouped).length === 0 && (
-          <p className="text-white/20 text-xs px-4 py-3 italic">No nodes match "{search}"</p>
+          <p className={`${t.textFaint} text-xs px-4 py-3 italic`}>No nodes match "{search}"</p>
         )}
 
         {CATEGORY_ORDER.filter(cat => grouped[cat]).map(cat => {
-          const meta    = CATEGORY_META[cat] || { color: 'text-white/50', dot: 'bg-white/30' }
-          const isOpen  = openCats[cat]
+          const meta   = CATEGORY_META[cat] || { color: 'text-gray-500', dot: 'bg-gray-400' }
+          const isOpen = openCats[cat]
           const entries = grouped[cat]
           return (
             <div key={cat} className="mb-1">
-              {/* Section header — click to collapse/expand */}
               <button
                 onClick={() => toggleCat(cat)}
-                className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-white/[0.03] transition-colors"
+                className={`w-full flex items-center gap-2 px-4 py-1.5 ${t.sectionHover} transition-colors`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                 <span className={`text-[10px] font-bold uppercase tracking-widest flex-1 text-left ${meta.color}`}>
                   {cat}
                 </span>
-                <span className="text-white/20 text-[10px] font-mono mr-1">{entries.length}</span>
+                <span className={`${t.textFaint} text-[10px] font-mono mr-1`}>{entries.length}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                  className={`w-3 h-3 text-white/25 transition-transform ${isOpen ? '' : '-rotate-90'}`}>
+                  className={`w-3 h-3 ${t.sectionChevron} transition-transform ${isOpen ? '' : '-rotate-90'}`}>
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
               </button>
 
-              {/* Node cards */}
               {isOpen && (
                 <div className="px-3 pb-1 flex flex-col gap-1.5 mt-0.5">
                   {entries.map(([key, def]) => {
@@ -346,28 +344,23 @@ function Sidebar({ nodeTypes }) {
                         key={key}
                         draggable
                         onDragStart={e => onDragStart(e, key, def)}
-                        className={`
-                          flex items-center gap-2.5 p-2.5 rounded-xl border bg-white/[0.02]
+                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border ${t.bgCard}
                           cursor-grab active:cursor-grabbing transition-all duration-150 select-none
-                          ${c.card}
-                        `}
+                          ${c.card}`}
                         title={def.description}
                       >
-                        {/* Icon box */}
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${c.box}`}>
                           {icon}
                         </div>
-                        {/* Label + description */}
                         <div className="min-w-0 flex-1">
                           <div className={`text-[12px] font-semibold leading-tight ${c.name}`}>
                             {def.name}
                           </div>
-                          <div className="text-[10px] text-white/30 leading-snug mt-0.5 line-clamp-1">
+                          <div className={`text-[10px] ${t.cardDesc} leading-snug mt-0.5 line-clamp-1`}>
                             {def.description}
                           </div>
                         </div>
-                        {/* Grip dots hint */}
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5 text-white/10 shrink-0">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className={`w-2.5 h-2.5 ${t.iconFaint} shrink-0`}>
                           <circle cx="9"  cy="7"  r="1.2"/>
                           <circle cx="9"  cy="12" r="1.2"/>
                           <circle cx="9"  cy="17" r="1.2"/>
@@ -384,9 +377,8 @@ function Sidebar({ nodeTypes }) {
           )
         })}
 
-        {/* Drag hint */}
-        <div className="mx-3 mt-2 p-2.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
-          <p className="text-white/20 text-[10px] leading-relaxed">
+        <div className={`mx-3 mt-2 p-2.5 ${t.bgCard} rounded-xl border ${t.dragHintBorder}`}>
+          <p className={`${t.textFaint} text-[10px] leading-relaxed`}>
             Drag any node onto the canvas to add it.
           </p>
         </div>
@@ -399,7 +391,7 @@ function Sidebar({ nodeTypes }) {
 // Topbar
 // ─────────────────────────────────────────────
 // Dark mode context
-const DarkModeCtx = createContext({ dark: true, toggle: () => {} })
+export const DarkModeCtx = createContext({ dark: true, toggle: () => {} })
 
 function Topbar({ workflowId, running, onRun, getFlowState, onLoad, dark, onToggleDark }) {
   const [saving, setSaving] = useState(false)
@@ -456,29 +448,28 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad, dark, onTogg
     }
   }
 
+  const t = dark ? T.dark : T.light
+
   return (
-    <div className="h-14 border-b border-white/[0.06] flex items-center px-4 shrink-0
-      bg-[#0a0a0a] justify-between z-10 relative">
+    <div className={`h-14 border-b ${t.border} flex items-center px-4 shrink-0
+      ${t.bg} justify-between z-10 relative transition-colors duration-200`}>
 
       <Link to="/dashboard"
-        className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg
-          hover:bg-white/10 transition-colors text-sm font-medium flex items-center gap-2">
+        className={`px-3 py-1.5 border rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${t.btnGhost}`}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
         Dashboard
       </Link>
 
-      <span className="text-white font-semibold text-sm">Flow Editor</span>
+      <span className={`${t.textPrimary} font-semibold text-sm`}>Flow Editor</span>
 
       <div className="flex items-center gap-2">
         {/* Load JSON */}
         <input ref={loadRef} type="file" accept=".json" onChange={handleLoad} className="hidden" />
         <button onClick={() => loadRef.current?.click()}
           title="Load workflow from JSON"
-          className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 text-sm
-            font-medium rounded-lg hover:bg-white/10 hover:text-white/90 transition-colors
-            flex items-center gap-1.5">
+          className={`px-3 py-1.5 border text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${t.btnGhostSm}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/>
@@ -490,9 +481,7 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad, dark, onTogg
         {/* Download JSON */}
         <button onClick={handleDownload} disabled={!workflowId}
           title="Download workflow JSON"
-          className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 text-sm
-            font-medium rounded-lg hover:bg-white/10 hover:text-white/90 transition-colors
-            disabled:opacity-40 flex items-center gap-1.5">
+          className={`px-3 py-1.5 border text-sm font-medium rounded-lg transition-colors disabled:opacity-40 flex items-center gap-1.5 ${t.btnGhostSm}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -502,18 +491,15 @@ function Topbar({ workflowId, running, onRun, getFlowState, onLoad, dark, onTogg
         </button>
 
         <button onClick={handleSave} disabled={saving || !workflowId}
-          className="px-4 py-1.5 bg-white/5 border border-white/10 text-white/80 text-sm
-            font-medium rounded-lg hover:bg-white/10 transition-colors disabled:opacity-40">
+          className={`px-4 py-1.5 border text-sm font-medium rounded-lg transition-colors disabled:opacity-40 ${t.btnGhost}`}>
           {saving ? 'Saving…' : 'Save'}
         </button>
 
-        {/* Dark mode toggle */}
+        {/* Dark / Light toggle */}
         <button
           onClick={onToggleDark}
           title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 text-sm
-            font-medium rounded-lg hover:bg-white/10 hover:text-white/90 transition-colors
-            flex items-center gap-1.5"
+          className={`px-3 py-1.5 border text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${t.btnGhostSm}`}
         >
           {dark ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -614,21 +600,7 @@ function FlowCanvasInner({
     setNodes(nds => [...nds, newNode])
   }, [screenToFlowPosition, setNodes, nodeTypes])
 
-  // ── Edges ────────────────────────────────────────────────────────────
-  const defaultEdgeOptions = {
-    type: 'smoothstep',
-    animated: false,
-    style: {
-      stroke: 'rgba(255,255,255,0.35)',
-      strokeWidth: 1.5,
-    },
-    markerEnd: {
-      type: 'arrowclosed',
-      color: 'rgba(255,255,255,0.35)',
-      width: 14,
-      height: 14,
-    },
-  }
+  // ── Edges ── (defaultEdgeOptions built inside return with t.edgeColor)
 
   const onConnect = useCallback(
     params => setEdges(eds => {
@@ -692,6 +664,16 @@ function FlowCanvasInner({
     setCtxMenu(null)
   }, [setEdges])
 
+  const t = dark ? T.dark : T.light
+  const edgeColor = t.edgeColor
+
+  const defaultEdgeOptions = {
+    type: 'smoothstep',
+    animated: false,
+    style: { stroke: edgeColor, strokeWidth: 1.5 },
+    markerEnd: { type: 'arrowclosed', color: edgeColor, width: 14, height: 14 },
+  }
+
   return (
     <div ref={wrapperRef} className="flex-1 h-full relative">
       <ReactFlow
@@ -708,46 +690,45 @@ function FlowCanvasInner({
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineStyle={{ stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1.5, strokeDasharray: '5 4' }}
+        connectionLineStyle={{ stroke: t.connLine, strokeWidth: 1.5, strokeDasharray: '5 4' }}
         fitView
-        colorMode="dark"
-        className={dark ? 'bg-[#0c0c0c]' : 'bg-[#f5f5f5]'}
+        colorMode={t.rfMode}
+        className={`${t.bgCanvas} transition-colors duration-200`}
         deleteKeyCode={['Backspace', 'Delete']}
         snapToGrid
         snapGrid={[16, 16]}
       >
         <Controls
-          style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}
+          style={{ background: t.bgControls, border: t.borderControls, borderRadius: 12 }}
         />
         <MiniMap
           zoomable
           pannable
           nodeBorderRadius={8}
-          maskStrokeColor="rgba(255,255,255,0.1)"
+          maskStrokeColor={t.minimapStroke}
           maskStrokeWidth={2}
-          maskColor="rgba(0, 0, 0, 0.6)"
-          className="!bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 !rounded-2xl shadow-2xl overflow-hidden"
+          maskColor={t.minimapMask}
+          className={`${t.minimapBg} backdrop-blur-xl border ${t.borderCtx} !rounded-2xl shadow-2xl overflow-hidden`}
           nodeColor={n => {
             const c = n.data?.color
-            // Lighter, more pastel colors for the minimap nodes look more premium on dark mode
             const map = { orange:'#fb923c', purple:'#c084fc', green:'#4ade80', yellow:'#facc15', teal:'#2dd4bf', indigo:'#818cf8', gray:'#9ca3af' }
             return map[c] || '#60a5fa'
           }}
         />
-        <Background variant="lines" gap={32} size={0.5} color={dark ? '#ffffff08' : '#00000010'} />
+        <Background variant="lines" gap={32} size={0.5} color={t.gridColor} />
       </ReactFlow>
 
-      {/* Right-click context menu (node or edge) */}
+      {/* Right-click context menu */}
       {ctxMenu && (
         <div
           style={{ position: 'fixed', top: ctxMenu.y, left: ctxMenu.x, zIndex: 999 }}
-          className="bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl py-1 min-w-[150px]"
+          className={`${t.bgCtxMenu} border ${t.borderCtx} rounded-xl shadow-xl py-1 min-w-[150px]`}
           onMouseLeave={() => setCtxMenu(null)}
         >
           {ctxMenu.kind === 'node' && (
             <button
               onClick={() => deleteNode(ctxMenu.id)}
-              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-white/5 flex items-center gap-2"
+              className={`w-full text-left px-3 py-2 text-sm text-red-500 ${t.ctxHover} flex items-center gap-2`}
             >
               <span>🗑</span> Delete node
             </button>
@@ -755,7 +736,7 @@ function FlowCanvasInner({
           {ctxMenu.kind === 'edge' && (
             <button
               onClick={() => deleteEdge(ctxMenu.id)}
-              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-white/5 flex items-center gap-2"
+              className={`w-full text-left px-3 py-2 text-sm text-red-500 ${t.ctxHover} flex items-center gap-2`}
             >
               <span>✂</span> Remove connection
             </button>
@@ -912,9 +893,12 @@ export default function Flow() {
     setEdges(newEdges)
   }, [setNodes, setEdges])
 
+  const t = dark ? T.dark : T.light
+
   return (
-    <div className={`h-screen w-screen flex flex-col transition-colors duration-300 ${dark ? 'bg-[#0a0a0a]' : 'bg-[#f0f0f0]'}`}>
-      <ReactFlowProvider>
+    <DarkModeCtx.Provider value={{ dark, toggle: toggleDark }}>
+      <div className={`h-screen w-screen flex flex-col transition-colors duration-200 ${t.bg}`}>
+        <ReactFlowProvider>
         <Topbar
           workflowId={workflowId}
           running={running}
@@ -927,7 +911,7 @@ export default function Flow() {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex overflow-hidden">
-            <Sidebar nodeTypes={nodeTypes} />
+            <Sidebar nodeTypes={nodeTypes} dark={dark} />
 
             <FlowCanvasInner
               workflowId={workflowId}
@@ -963,6 +947,7 @@ export default function Flow() {
           />
         )}
       </ReactFlowProvider>
-    </div>
+      </div>
+    </DarkModeCtx.Provider>
   )
 }

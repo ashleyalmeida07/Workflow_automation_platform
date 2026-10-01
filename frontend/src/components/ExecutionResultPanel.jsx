@@ -2,7 +2,14 @@
    Shows the step-by-step result of the last workflow run.
 */
 
+import { useContext } from "react";
+import { DarkModeCtx } from "../pages/Flow";
+import { T } from "../theme";
+
 export default function ExecutionResultPanel({ result, onClose }) {
+  const { dark } = useContext(DarkModeCtx);
+  const t = dark ? T.dark : T.light;
+
   if (!result) return null
 
   const statusColor = result.status === 'completed'
@@ -10,17 +17,17 @@ export default function ExecutionResultPanel({ result, onClose }) {
     : 'text-red-400'
 
   return (
-    <div className="absolute bottom-4 right-4 w-[380px] bg-[#141414] border border-white/10 rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh]">
+    <div className={`absolute bottom-4 right-4 w-[380px] ${t.bgPanel} border ${t.border} rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh] transition-colors`}>
       {/* header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+      <div className={`flex items-center justify-between px-4 py-3 border-b ${t.border}`}>
         <div className="flex items-center gap-2">
           <span className={`text-sm font-semibold ${statusColor}`}>
             {result.status === 'completed' ? '✓ Run completed' : '✕ Run failed'}
           </span>
-          <span className="text-white/30 text-xs">{result.steps?.length} steps</span>
+          <span className={`${t.textMuted} text-xs`}>{result.steps?.length} steps</span>
         </div>
         <button onClick={onClose}
-          className="text-white/40 hover:text-white/80 text-lg leading-none">✕</button>
+          className={`${t.textMuted} hover:${t.textPrimary} text-lg leading-none transition-colors`}>✕</button>
       </div>
 
       {/* steps */}
@@ -30,11 +37,11 @@ export default function ExecutionResultPanel({ result, onClose }) {
             className={`rounded-xl border px-3 py-2 text-xs
               ${step.error
                 ? 'bg-red-500/10 border-red-500/20 text-red-300'
-                : 'bg-white/5 border-white/10 text-white/70'
+                : `${t.bgInfo} ${t.border} ${t.textSecondary}`
               }`}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className={`font-semibold ${step.error ? 'text-red-400' : 'text-white/90'}`}>
+              <span className={`font-semibold ${step.error ? 'text-red-400' : t.textPrimary}`}>
                 {step.label}
               </span>
               <span className="opacity-50">({step.type})</span>
@@ -47,7 +54,7 @@ export default function ExecutionResultPanel({ result, onClose }) {
             )}
 
             {!step.error && Object.keys(step.output || {}).length > 0 && (
-              <pre className="font-mono text-white/50 whitespace-pre-wrap mt-1 break-all">
+              <pre className={`font-mono ${t.textMuted} whitespace-pre-wrap mt-1 break-all`}>
                 {JSON.stringify(step.output, null, 2)}
               </pre>
             )}
