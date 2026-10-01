@@ -451,46 +451,78 @@ def run_postgres_db(node: dict, state: dict) -> dict:
 
 
 # ---------------------------------------------
-# OpenAI Node
+# AI Chat Node  (any OpenAI-compatible provider)
+# Supported: OpenAI, OpenRouter, NVIDIA NIM,
+#            Ollama, Together AI, Groq, etc.
 # ---------------------------------------------
-def run_openai(node: dict, state: dict) -> dict:
+def run_ai_chat(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      base_url      - API base URL  (default: https://api.openai.com/v1)
+                      OpenRouter  : https://openrouter.ai/api/v1
+                      NVIDIA NIM  : https://integrate.api.nvidia.com/v1
+                      Groq        : https://api.groq.com/openai/v1
+                      Ollama      : http://localhost:11434/v1
+      api_key       - API key (leave blank for Ollama local)
+      model         - model name (e.g. gpt-4o-mini, mistralai/mistral-7b-instruct)
+      system_prompt - optional system role message
+      prompt        - user prompt with {{state_key}} placeholders
+      max_tokens    - max response tokens (default 512)
+    """
     settings = node.get("data", {}).get("settings", {})
-    
+
     def interpolate(text: str) -> str:
         if not isinstance(text, str): return text
         for key, val in state.items():
             text = text.replace(f"{{{{{key}}}}}", str(val))
         return text
 
-    api_key = interpolate(settings.get("api_key", ""))
-    model = interpolate(settings.get("model", "gpt-3.5-turbo"))
-    prompt = interpolate(settings.get("prompt", ""))
+    base_url      = interpolate(settings.get("base_url", "https://api.openai.com/v1")).rstrip("/")
+    api_key       = interpolate(settings.get("api_key", "")).strip()
+    model         = interpolate(settings.get("model", "gpt-4o-mini")).strip()
+    system_prompt = interpolate(settings.get("system_prompt", "You are a helpful assistant."))
+    prompt        = interpolate(settings.get("prompt", ""))
+    max_tokens    = int(settings.get("max_tokens", 512) or 512)
 
-    if not api_key:
-        raise ValueError("OpenAI node: 'api_key' is required")
     if not prompt:
-        raise ValueError("OpenAI node: 'prompt' is required")
+        raise ValueError("AI Chat node: 'prompt' is required")
 
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}]
+        "messages": messages,
+        "max_tokens": max_tokens,
     }
 
     try:
-        with httpx.Client(timeout=30) as client:
-            response = client.post(url, headers=headers, json=payload)
+        with httpx.Client(timeout=60) as client:
+            response = client.post(
+                f"{base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            )
         response.raise_for_status()
         data = response.json()
         ai_response = data["choices"][0]["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        body = e.response.text[:400]
+        raise ValueError(f"AI Chat node HTTP {e.response.status_code}: {body}")
     except Exception as e:
-        raise ValueError(f"OpenAI node error: {e}")
+        raise ValueError(f"AI Chat node error: {e}")
 
-    return {"openai_response": ai_response}
+    return {
+        "ai_response": ai_response,
+        "model": model,
+        "provider_url": base_url,
+    }
 
 
 # ---------------------------------------------
@@ -738,12 +770,15 @@ NODE_RUNNERS = {
     "end":                run_end,
     "local_storage":      run_local_storage,
     "postgres_db":        run_postgres_db,
-    "openai":             run_openai,
     "file_upload":        run_file_upload,
     "parallel_execution": run_parallel_execution,
     "loop_node":          run_loop_node,
     "custom_node":        run_custom_node,
     "docker_deploy":      run_docker_deploy,
+    "ai_chat":            run_ai_chat,
+    # Legacy aliases kept so old saved workflows still run
+    "openai":             run_ai_chat,
+    "simple_ai":          run_ai_chat,
 }
 
 

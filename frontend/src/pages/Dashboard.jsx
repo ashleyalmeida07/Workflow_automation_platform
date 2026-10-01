@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DashboardLayout } from '../components/ui/dashboard-sidebar'
 import { Plus } from 'lucide-react'
+import { T } from '../theme'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -23,7 +24,8 @@ function timeAgo(dateStr) {
 
 // ── Workflow Modal ────────────────────────────────────────────────────────────
 
-function WorkflowModal({ existing, onClose, onSave }) {
+function WorkflowModal({ existing, onClose, onSave, dark }) {
+  const t = dark ? T.dark : T.light
   const [name, setName] = useState(existing?.name ?? '')
   const [desc, setDesc] = useState(existing?.description ?? '')
   const [saving, setSaving] = useState(false)
@@ -55,33 +57,33 @@ function WorkflowModal({ existing, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 shadow-2xl">
-        <h2 className="text-lg font-bold text-white mb-4">{existing ? 'Edit Workflow' : 'New Workflow'}</h2>
+      <div className={`w-full max-w-md ${t.bgPanel} border ${t.border} rounded-2xl p-6 shadow-2xl`}>
+        <h2 className={`text-lg font-bold ${t.textPrimary} mb-4`}>{existing ? 'Edit Workflow' : 'New Workflow'}</h2>
         {error && <div className="text-red-400 text-sm bg-red-950/40 border border-red-800/50 rounded-lg px-4 py-2 mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-white/40 text-xs uppercase tracking-wider mb-1.5">Workflow Name *</label>
+            <label className={`block ${t.textMuted} text-xs uppercase tracking-wider mb-1.5`}>Workflow Name *</label>
             <input
               id="workflow-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-white/5 text-white border border-white/10 rounded-xl px-4 py-2.5 text-sm placeholder-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition"
+              className={`w-full ${t.bgInput} ${t.textPrimary} border ${t.borderInput} rounded-xl px-4 py-2.5 text-sm ${t.textPlaceholder} focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition`}
               placeholder="e.g. Send Slack on new lead"
             />
           </div>
           <div>
-            <label className="block text-white/40 text-xs uppercase tracking-wider mb-1.5">Description</label>
+            <label className={`block ${t.textMuted} text-xs uppercase tracking-wider mb-1.5`}>Description</label>
             <textarea
               id="workflow-desc"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               rows={3}
-              className="w-full bg-white/5 text-white border border-white/10 rounded-xl px-4 py-2.5 text-sm placeholder-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition resize-none"
+              className={`w-full ${t.bgInput} ${t.textPrimary} border ${t.borderInput} rounded-xl px-4 py-2.5 text-sm ${t.textPlaceholder} focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition resize-none`}
               placeholder="What does this workflow do?"
             />
           </div>
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-white/50 bg-white/5 hover:bg-white/10 border border-white/10 transition">Cancel</button>
+            <button type="button" onClick={onClose} className={`flex-1 py-2.5 rounded-xl text-sm ${t.textMuted} ${t.bgInput} hover:opacity-80 border ${t.border} transition`}>Cancel</button>
             <button
               id="save-workflow-btn"
               type="submit"
@@ -99,22 +101,23 @@ function WorkflowModal({ existing, onClose, onSave }) {
 
 // ── Delete Modal ──────────────────────────────────────────────────────────────
 
-function DeleteModal({ wf, onClose, onConfirm }) {
+function DeleteModal({ wf, onClose, onConfirm, dark }) {
+  const t = dark ? T.dark : T.light
   const [deleting, setDeleting] = useState(false)
   const handleDelete = async () => { setDeleting(true); await onConfirm(wf.id); setDeleting(false) }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+      <div className={`w-full max-w-sm ${t.bgPanel} border ${t.border} rounded-2xl p-6 shadow-2xl`}>
         <div className="w-12 h-12 rounded-full bg-red-950/50 border border-red-800/50 flex items-center justify-center mx-auto mb-4">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
             <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
             <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
           </svg>
         </div>
-        <h2 className="text-white font-bold text-center mb-1">Delete Workflow?</h2>
-        <p className="text-white/40 text-sm text-center mb-6"><span className="text-white/70 font-medium">"{wf.name}"</span> will be permanently deleted.</p>
+        <h2 className={`${t.textPrimary} font-bold text-center mb-1`}>Delete Workflow?</h2>
+        <p className={`${t.textMuted} text-sm text-center mb-6`}><span className={`${t.textSecondary} font-medium`}>"{wf.name}"</span> will be permanently deleted.</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-white/50 bg-white/5 hover:bg-white/10 border border-white/10 transition">Cancel</button>
+          <button onClick={onClose} className={`flex-1 py-2.5 rounded-xl text-sm ${t.textMuted} ${t.bgInput} hover:opacity-80 border ${t.border} transition`}>Cancel</button>
           <button id="confirm-delete-btn" onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-700 hover:bg-red-600 transition disabled:opacity-50">
             {deleting ? 'Deleting...' : 'Delete'}
           </button>
@@ -126,12 +129,13 @@ function DeleteModal({ wf, onClose, onConfirm }) {
 
 // ── Workflow Card ─────────────────────────────────────────────────────────────
 
-function WorkflowCard({ wf, onEdit, onDelete, onOpen }) {
+function WorkflowCard({ wf, onEdit, onDelete, onOpen, dark }) {
+  const t = dark ? T.dark : T.light
   const nodeCount = wf.workflow_json?.nodes?.length ?? 0
   const edgeCount = wf.workflow_json?.edges?.length ?? 0
 
   return (
-    <div className="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.07] hover:border-orange-500/30 rounded-xl p-5 transition-all duration-200 cursor-pointer">
+    <div className={`group ${t.bgCard} hover:opacity-90 border ${t.borderCard} hover:border-orange-500/30 rounded-xl p-5 transition-all duration-200 cursor-pointer`}>
       <div className="flex items-start justify-between mb-3">
         <div className="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2">
@@ -140,7 +144,7 @@ function WorkflowCard({ wf, onEdit, onDelete, onOpen }) {
           </svg>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(wf)} title="Edit" className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition">
+          <button onClick={() => onEdit(wf)} title="Edit" className={`p-1.5 rounded-lg ${t.textFaint} ${t.sectionHover} transition`}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -155,16 +159,16 @@ function WorkflowCard({ wf, onEdit, onDelete, onOpen }) {
         </div>
       </div>
 
-      <h3 className="text-white font-semibold text-sm mb-1 truncate">{wf.name}</h3>
-      <p className="text-white/30 text-xs mb-4 truncate">{wf.description || 'No description'}</p>
+      <h3 className={`${t.textPrimary} font-semibold text-sm mb-1 truncate`}>{wf.name}</h3>
+      <p className={`${t.textFaint} text-xs mb-4 truncate`}>{wf.description || 'No description'}</p>
 
       <div className="flex gap-2 mb-4">
-        <span className="text-xs text-white/30 bg-white/[0.04] rounded-md px-2 py-1">{nodeCount} {nodeCount === 1 ? 'node' : 'nodes'}</span>
-        <span className="text-xs text-white/30 bg-white/[0.04] rounded-md px-2 py-1">{edgeCount} {edgeCount === 1 ? 'edge' : 'edges'}</span>
+        <span className={`text-xs ${t.textFaint} ${t.bgInput} rounded-md px-2 py-1`}>{nodeCount} {nodeCount === 1 ? 'node' : 'nodes'}</span>
+        <span className={`text-xs ${t.textFaint} ${t.bgInput} rounded-md px-2 py-1`}>{edgeCount} {edgeCount === 1 ? 'edge' : 'edges'}</span>
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs text-white/20">{timeAgo(wf.updated_at || wf.created_at)}</span>
+        <span className={`text-xs ${t.textFaint}`}>{timeAgo(wf.updated_at || wf.created_at)}</span>
         <button
           onClick={() => onOpen(wf)}
           className="text-xs text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1"
@@ -183,7 +187,22 @@ function WorkflowCard({ wf, onEdit, onDelete, onOpen }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  // Seed with cached name instantly so sidebar doesn't flash "..." on every load
+
+  // ── Dark/Light mode (synced with Flow editor preference) ──────────────
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem('flowDarkMode')
+    return saved === null ? true : saved === 'true'
+  })
+  const toggleDark = useCallback(() => {
+    setDark(prev => {
+      const next = !prev
+      localStorage.setItem('flowDarkMode', String(next))
+      return next
+    })
+  }, [])
+
+  const t = dark ? T.dark : T.light
+
   const [user, setUser] = useState(() => {
     const cached = localStorage.getItem('userName')
     return cached ? { name: cached } : null
@@ -207,14 +226,13 @@ export default function Dashboard() {
         if (uRes.status === 401) { localStorage.removeItem('token'); localStorage.removeItem('userName'); navigate('/login'); return }
         const [userData, workflowData] = await Promise.all([uRes.json(), wRes.json()])
         setUser(userData)
-        // Keep cache in sync
         if (userData?.name) localStorage.setItem('userName', userData.name)
         setWorkflows(Array.isArray(workflowData) ? workflowData : [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // run once on mount only — navigate is stable but listing it causes re-fetch loops
+  }, [])
 
   const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('userName'); navigate('/login') }
 
@@ -231,10 +249,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className={`min-h-screen ${t.bg} flex items-center justify-center`}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/30 text-sm">Loading dashboard...</p>
+          <p className={`${t.textFaint} text-sm`}>Loading dashboard...</p>
         </div>
       </div>
     )
@@ -247,13 +265,15 @@ export default function Dashboard() {
       userName={user?.name}
       onLogout={logout}
       breadcrumb="My Workflows"
+      dark={dark}
+      onToggleDark={toggleDark}
     >
-      <div className="p-6 md:p-8">
+      <div className={`p-6 md:p-8 min-h-full ${t.bg} transition-colors duration-200`}>
         {/* Page header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-xl font-bold text-white">My Workflows</h1>
-            <p className="text-white/30 text-sm mt-0.5">
+            <h1 className={`text-xl font-bold ${t.textPrimary}`}>My Workflows</h1>
+            <p className={`${t.textFaint} text-sm mt-0.5`}>
               {workflows.length === 0
                 ? 'No workflows yet — create your first one'
                 : `${workflows.length} workflow${workflows.length !== 1 ? 's' : ''}`}
@@ -278,8 +298,8 @@ export default function Dashboard() {
                 <line x1="8" y1="12" x2="16" y2="7" /><line x1="8" y1="12" x2="16" y2="17" />
               </svg>
             </div>
-            <h3 className="text-white font-semibold mb-2">No workflows yet</h3>
-            <p className="text-white/30 text-sm mb-6">Click "New Workflow" to start automating</p>
+            <h3 className={`${t.textPrimary} font-semibold mb-2`}>No workflows yet</h3>
+            <p className={`${t.textFaint} text-sm mb-6`}>Click "New Workflow" to start automating</p>
             <button
               onClick={() => setShowCreate(true)}
               className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 transition-colors"
@@ -293,6 +313,7 @@ export default function Dashboard() {
               <WorkflowCard
                 key={wf.id}
                 wf={wf}
+                dark={dark}
                 onEdit={w => setEditTarget(w)}
                 onDelete={w => setDeleteTarget(w)}
                 onOpen={w => navigate('/flow', { state: { workflowId: w.id } })}
@@ -303,9 +324,9 @@ export default function Dashboard() {
       </div>
 
       {/* Modals */}
-      {showCreate && <WorkflowModal onClose={() => setShowCreate(false)} onSave={handleSave} />}
-      {editTarget && <WorkflowModal existing={editTarget} onClose={() => setEditTarget(null)} onSave={handleSave} />}
-      {deleteTarget && <DeleteModal wf={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} />}
+      {showCreate && <WorkflowModal dark={dark} onClose={() => setShowCreate(false)} onSave={handleSave} />}
+      {editTarget && <WorkflowModal dark={dark} existing={editTarget} onClose={() => setEditTarget(null)} onSave={handleSave} />}
+      {deleteTarget && <DeleteModal dark={dark} wf={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} />}
     </DashboardLayout>
   )
 }

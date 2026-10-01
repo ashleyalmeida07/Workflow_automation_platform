@@ -16,7 +16,10 @@ import {
   X,
   Plus,
   User,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { T } from '../../theme'
 
 // ── Nav Data ────────────────────────────────────────────────────────────────
 
@@ -52,37 +55,37 @@ const BOTTOM_ITEMS = [
 
 // ── WorkspaceSwitcher ────────────────────────────────────────────────────────
 
-function WorkspaceSwitcher({ userName }) {
+function WorkspaceSwitcher({ userName, dark }) {
+  const t = dark ? T.dark : T.light
   const [open, setOpen] = useState(false)
-  const initial = userName?.[0]?.toUpperCase() ?? 'F'
 
   return (
     <div className="relative">
       <div
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between px-2 py-2 mb-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors select-none group"
+        className={`flex items-center justify-between px-2 py-2 mb-3 rounded-lg ${t.sectionHover} cursor-pointer transition-colors select-none group`}
       >
         <div className="flex items-center gap-3">
           <img src="/logo.png" className="h-8 w-auto object-contain drop-shadow-sm" alt="Logo" />
           <div className="flex flex-col overflow-hidden">
-            <span className="text-[13px] font-medium leading-none mb-1 text-white truncate max-w-[120px]">
+            <span className={`text-[13px] font-medium leading-none mb-1 ${t.textPrimary} truncate max-w-[120px]`}>
               {userName || 'FlowForge'}
             </span>
-            <span className="text-[11px] text-white/40 leading-none">Workspace</span>
+            <span className={`text-[11px] ${t.textFaint} leading-none`}>Workspace</span>
           </div>
         </div>
-        <ChevronDown className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors shrink-0" strokeWidth={1.5} />
+        <ChevronDown className={`w-4 h-4 ${t.textFaint} group-hover:${t.textMuted} transition-colors shrink-0`} strokeWidth={1.5} />
       </div>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-[52px] left-0 w-full bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl z-50 py-1 flex flex-col gap-0.5">
+          <div className={`absolute top-[52px] left-0 w-full ${t.bgPanel} border ${t.border} rounded-lg shadow-xl z-50 py-1 flex flex-col gap-0.5`}>
             <div className="px-3 py-2 mx-1 text-[13px] rounded-md bg-orange-500/10 text-orange-400 font-medium">
               {userName || 'FlowForge'}
             </div>
-            <div className="h-px bg-white/5 my-1 mx-2" />
-            <div className="px-3 py-2 mx-1 text-[13px] text-white/50 hover:bg-white/5 rounded-md cursor-pointer flex items-center gap-2 transition-colors">
+            <div className={`h-px ${t.border} my-1 mx-2`} />
+            <div className={`px-3 py-2 mx-1 text-[13px] ${t.textMuted} ${t.sectionHover} rounded-md cursor-pointer flex items-center gap-2 transition-colors`}>
               <Plus className="w-3.5 h-3.5" /> Create Workspace
             </div>
           </div>
@@ -94,7 +97,8 @@ function WorkspaceSwitcher({ userName }) {
 
 // ── NavItem ──────────────────────────────────────────────────────────────────
 
-function NavItem({ item, activeId, onSelect, level = 0 }) {
+function NavItem({ item, activeId, onSelect, level = 0, dark }) {
+  const t = dark ? T.dark : T.light
   const isActive = activeId === item.id
   const hasChildren = !!item.children
   const [isOpen, setIsOpen] = useState(false)
@@ -112,14 +116,14 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
         className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-150 select-none
           ${isActive
             ? 'bg-orange-500/15 text-orange-400'
-            : 'text-white/50 hover:bg-white/5 hover:text-white/90'
+            : `${t.textMuted} ${t.sectionHover} hover:${t.textSecondary}`
           }`}
         style={{ paddingLeft: `${level * 12 + 10}px` }}
         onClick={handleClick}
       >
         <div className="flex items-center gap-2.5">
           <item.icon
-            className={`w-[15px] h-[15px] transition-colors ${isActive ? 'text-orange-400' : 'text-white/30 group-hover:text-white/70'}`}
+            className={`w-[15px] h-[15px] transition-colors ${isActive ? 'text-orange-400' : `${t.iconColor} group-hover:${t.textSecondary}`}`}
             strokeWidth={1.5}
           />
           <span className="text-[13px] tracking-wide truncate">{item.title}</span>
@@ -127,7 +131,7 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
 
         <div className="flex items-center gap-2">
           {item.shortcut && (
-            <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-mono text-white/30 bg-white/5 border border-white/10 rounded-[4px]">
+            <kbd className={`hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-mono ${t.textFaint} ${t.bgInput} border ${t.border} rounded-[4px]`}>
               {item.shortcut}
             </kbd>
           )}
@@ -138,7 +142,7 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
           )}
           {hasChildren && (
             <ChevronRight
-              className={`w-3.5 h-3.5 text-white/20 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+              className={`w-3.5 h-3.5 ${t.textFaint} transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
               strokeWidth={2}
             />
           )}
@@ -149,11 +153,11 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
         <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden min-h-0 relative flex flex-col gap-0.5 mt-0.5">
             <div
-              className="absolute top-0 bottom-0 border-l border-white/5"
+              className={`absolute top-0 bottom-0 border-l ${t.border}`}
               style={{ left: `${level * 12 + 17.5}px` }}
             />
             {item.children.map(child => (
-              <NavItem key={child.id} item={child} activeId={activeId} onSelect={onSelect} level={level + 1} />
+              <NavItem key={child.id} item={child} activeId={activeId} onSelect={onSelect} level={level + 1} dark={dark} />
             ))}
           </div>
         </div>
@@ -164,30 +168,43 @@ function NavItem({ item, activeId, onSelect, level = 0 }) {
 
 // ── SidebarNav ────────────────────────────────────────────────────────────────
 
-export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
+export function SidebarNav({ activeId, onSelect, userName, onLogout, dark, onToggleDark }) {
+  const t = dark ? T.dark : T.light
   return (
-    <div className="flex flex-col w-[240px] h-full bg-[#111111] border-r border-white/[0.06] p-3">
-      <WorkspaceSwitcher userName={userName} />
+    <div className={`flex flex-col w-[240px] h-full ${t.bgPanel} border-r ${t.border} p-3`}>
+      <WorkspaceSwitcher userName={userName} dark={dark} />
 
       {/* Nav groups */}
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 mt-1">
         {NAV_GROUPS.map((group, idx) => (
           <div key={idx} className="flex flex-col gap-0.5">
             {group.heading && (
-              <span className="px-2.5 mb-1 text-[10px] font-semibold tracking-widest text-white/25 uppercase">
+              <span className={`px-2.5 mb-1 text-[10px] font-semibold tracking-widest ${t.textFaint} uppercase`}>
                 {group.heading}
               </span>
             )}
             {group.items.map(item => (
-              <NavItem key={item.id} item={item} activeId={activeId} onSelect={onSelect} />
+              <NavItem key={item.id} item={item} activeId={activeId} onSelect={onSelect} dark={dark} />
             ))}
           </div>
         ))}
       </div>
 
       {/* Bottom items */}
-      <div className="mt-auto pt-3 border-t border-white/[0.06] flex flex-col gap-0.5">
-        {BOTTOM_ITEMS.map(item => (
+      <div className={`mt-auto pt-3 border-t ${t.border} flex flex-col gap-0.5`}>
+        {/* Dark/Light toggle */}
+        <button
+          onClick={onToggleDark}
+          className={`group flex items-center gap-2.5 px-2.5 py-[7px] rounded-[6px] cursor-pointer ${t.textMuted} ${t.sectionHover} transition-all duration-150`}
+        >
+          {dark
+            ? <Sun className="w-[15px] h-[15px]" strokeWidth={1.5} />
+            : <Moon className="w-[15px] h-[15px]" strokeWidth={1.5} />
+          }
+          <span className="text-[13px]">{dark ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+
+        {BOTTOM_ITEMS.map(item =>
           item.id === 'logout'
             ? (
               <div
@@ -199,8 +216,8 @@ export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
                 <span className="text-[13px]">{item.title}</span>
               </div>
             )
-            : <NavItem key={item.id} item={item} activeId={activeId} onSelect={onSelect} />
-        ))}
+            : <NavItem key={item.id} item={item} activeId={activeId} onSelect={onSelect} dark={dark} />
+        )}
       </div>
     </div>
   )
@@ -208,31 +225,32 @@ export function SidebarNav({ activeId, onSelect, userName, onLogout }) {
 
 // ── SearchModal ───────────────────────────────────────────────────────────────
 
-export function SearchModal({ onClose }) {
+export function SearchModal({ onClose, dark }) {
+  const t = dark ? T.dark : T.light
   return (
     <div className="absolute inset-0 z-50 flex items-start justify-center pt-[12vh] bg-black/60 backdrop-blur-sm px-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-        <div className="flex items-center px-4 border-b border-white/[0.06]">
-          <Search className="w-[17px] h-[17px] text-white/30 mr-3 shrink-0" strokeWidth={1.5} />
+      <div className={`relative w-full max-w-xl ${t.bgPanel} border ${t.border} rounded-xl shadow-2xl overflow-hidden`}>
+        <div className={`flex items-center px-4 border-b ${t.border}`}>
+          <Search className={`w-[17px] h-[17px] ${t.textFaint} mr-3 shrink-0`} strokeWidth={1.5} />
           <input
             autoFocus
-            className="flex-1 bg-transparent py-4 outline-none text-[14px] text-white placeholder:text-white/30"
+            className={`flex-1 bg-transparent py-4 outline-none text-[14px] ${t.textPrimary} ${t.textPlaceholder}`}
             placeholder="Search workflows, settings, or actions..."
           />
           <kbd
             onClick={onClose}
-            className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-mono text-white/30 bg-white/5 border border-white/10 rounded-[4px] cursor-pointer hover:text-white transition-colors"
+            className={`hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-mono ${t.textFaint} ${t.bgInput} border ${t.border} rounded-[4px] cursor-pointer hover:${t.textSecondary} transition-colors`}
           >
             ESC
           </kbd>
-          <button onClick={onClose} className="ml-3 p-1 rounded-md text-white/30 hover:bg-white/10 hover:text-white transition-colors">
+          <button onClick={onClose} className={`ml-3 p-1 rounded-md ${t.textFaint} ${t.sectionHover} hover:${t.textSecondary} transition-colors`}>
             <X className="w-[17px] h-[17px]" strokeWidth={1.5} />
           </button>
         </div>
         <div className="p-2 py-10 flex flex-col items-center justify-center">
-          <Command className="w-6 h-6 text-white/20 mb-2" strokeWidth={1.5} />
-          <p className="text-[13px] text-white/30 font-medium">Type to search...</p>
+          <Command className={`w-6 h-6 ${t.textFaint} mb-2`} strokeWidth={1.5} />
+          <p className={`text-[13px] ${t.textFaint} font-medium`}>Type to search...</p>
         </div>
       </div>
     </div>
@@ -241,26 +259,27 @@ export function SearchModal({ onClose }) {
 
 // ── DashboardLayout ───────────────────────────────────────────────────────────
 
-function TopbarUserMenu({ userName }) {
+function TopbarUserMenu({ userName, dark }) {
+  const t = dark ? T.dark : T.light
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setOpen(!open)}
         className="w-8 h-8 rounded-full bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 flex items-center justify-center text-orange-400 text-xs font-bold transition-colors"
       >
         {userName?.[0]?.toUpperCase() ?? '?'}
       </button>
-      
+
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-10 w-40 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl z-50 py-1 flex flex-col gap-0.5">
-            <div 
+          <div className={`absolute right-0 top-10 w-40 ${t.bgPanel} border ${t.border} rounded-lg shadow-xl z-50 py-1 flex flex-col gap-0.5`}>
+            <div
               onClick={() => { setOpen(false); navigate('/') }}
-              className="px-3 py-2 mx-1 text-[13px] text-white/70 hover:bg-white/5 hover:text-white rounded-md cursor-pointer transition-colors"
+              className={`px-3 py-2 mx-1 text-[13px] ${t.textMuted} ${t.sectionHover} hover:${t.textPrimary} rounded-md cursor-pointer transition-colors`}
             >
               Go to Home Page
             </div>
@@ -271,7 +290,8 @@ function TopbarUserMenu({ userName }) {
   )
 }
 
-export function DashboardLayout({ activeId, onSelect, userName, onLogout, children, breadcrumb }) {
+export function DashboardLayout({ activeId, onSelect, userName, onLogout, children, breadcrumb, dark, onToggleDark }) {
+  const t = dark ? T.dark : T.light
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -281,7 +301,7 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
   }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] overflow-hidden relative">
+    <div className={`flex h-screen ${t.bg} overflow-hidden relative transition-colors duration-200`}>
       {/* Sidebar */}
       <div
         className={`h-full shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-[240px] opacity-100' : 'w-0 opacity-0'}`}
@@ -291,17 +311,19 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
           onSelect={handleSelect}
           userName={userName}
           onLogout={onLogout}
+          dark={dark}
+          onToggleDark={onToggleDark}
         />
       </div>
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <div className="h-12 border-b border-white/[0.06] flex items-center px-4 justify-between bg-[#111111] shrink-0">
+        <div className={`h-12 border-b ${t.border} flex items-center px-4 justify-between ${t.bgPanel} shrink-0`}>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-md text-white/30 hover:bg-white/5 hover:text-white transition-colors"
+              className={`p-1.5 rounded-md ${t.textFaint} ${t.sectionHover} hover:${t.textSecondary} transition-colors`}
             >
               {sidebarOpen
                 ? <PanelLeftClose className="w-[17px] h-[17px]" strokeWidth={1.5} />
@@ -309,10 +331,10 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
               }
             </button>
             {breadcrumb && (
-              <div className="flex items-center gap-2 text-sm text-white/30">
+              <div className={`flex items-center gap-2 text-sm ${t.textFaint}`}>
                 <span>FlowForge</span>
                 <span>/</span>
-                <span className="text-white/80 font-medium">{breadcrumb}</span>
+                <span className={`${t.textSecondary} font-medium`}>{breadcrumb}</span>
               </div>
             )}
           </div>
@@ -320,13 +342,13 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-2 w-56 h-8 px-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] rounded-lg text-[13px] text-white/30 transition-colors"
+              className={`hidden md:flex items-center gap-2 w-56 h-8 px-3 ${t.bgInput} hover:opacity-80 border ${t.border} rounded-lg text-[13px] ${t.textFaint} transition-colors`}
             >
               <Search className="w-3.5 h-3.5" strokeWidth={1.5} />
               <span>Search...</span>
               <kbd className="ml-auto text-[10px] font-mono">⌘K</kbd>
             </button>
-            <TopbarUserMenu userName={userName} />
+            <TopbarUserMenu userName={userName} dark={dark} />
           </div>
         </div>
 
@@ -337,7 +359,7 @@ export function DashboardLayout({ activeId, onSelect, userName, onLogout, childr
       </div>
 
       {/* Search modal */}
-      {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
+      {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} dark={dark} />}
     </div>
   )
 }

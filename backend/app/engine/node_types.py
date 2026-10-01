@@ -255,19 +255,46 @@ NODE_TYPES = {
         },
     },
 
-    "openai": {
+    "ai_chat": {
         "icon":        "Sparkles",
-        "name":        "OpenAI",
-        "description": "Send a prompt to OpenAI's language models",
+        "name":        "AI Chat",
+        "description": "Send a prompt to any OpenAI-compatible API (OpenAI, OpenRouter, NVIDIA NIM, Ollama, Together, Groq, etc.)",
         "color":       "purple",
-        "engine_type": "openai",
+        "engine_type": "ai_chat",
         "category":    "Actions",
         "inputs":      ["input"],
-        "outputs":     ["response"],
+        "outputs":     ["ai_response"],
         "settings": {
-            "api_key": {"type": "text", "label": "OpenAI API Key", "default": ""},
-            "model":   {"type": "text", "label": "Model", "default": "gpt-3.5-turbo"},
-            "prompt":  {"type": "textarea", "label": "Prompt", "default": "Hello, how are you {{name}}?"},
+            "base_url": {
+                "type":    "text",
+                "label":   "API Base URL",
+                "default": "https://api.openai.com/v1",
+            },
+            "api_key": {
+                "type":    "text",
+                "label":   "API Key",
+                "default": "",
+            },
+            "model": {
+                "type":    "text",
+                "label":   "Model (e.g. gpt-4o, mistralai/mistral-7b-instruct, meta/llama-3.1-70b-instruct)",
+                "default": "gpt-4o-mini",
+            },
+            "system_prompt": {
+                "type":    "text",
+                "label":   "System Prompt (optional)",
+                "default": "You are a helpful assistant.",
+            },
+            "prompt": {
+                "type":    "textarea",
+                "label":   "User Prompt (supports {{state_key}} placeholders)",
+                "default": "Summarize the following: {{response}}",
+            },
+            "max_tokens": {
+                "type":    "number",
+                "label":   "Max Tokens",
+                "default": "512",
+            },
         },
     },
 
