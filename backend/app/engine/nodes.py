@@ -567,6 +567,160 @@ def run_parallel_execution(node: dict, state: dict) -> dict:
 
 
 # ---------------------------------------------
+# Loop Node - sequential iteration over an array
+# ---------------------------------------------
+def run_loop_node(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      array_key      - dotted path in state to an array (e.g. "response.items")
+      code           - Python code snippet; `item` is the current element,
+                       `state` is the full state; put output into `result`.
+      max_iterations - safety cap (0 = no limit, default 100)
+
+    Example code:
+      result = {"name": item.get("name", ""), "uppercased": str(item).upper()}
+    """
+    settings = node.get("data", {}).get("settings", {})
+    array_key = settings.get("array_key", "")
+    code = settings.get("code", "result = item")
+    max_iter = int(settings.get("max_iterations", 100) or 100)
+
+    # Resolve dotted key path in state
+    actual = state
+    for part in array_key.split("."):
+        actual = actual.get(part) if isinstance(actual, dict) else None
+
+    if not isinstance(actual, list):
+        raise ValueError(
+            f"Loop node: expected a list at state key '{array_key}', got {type(actual).__name__}"
+        )
+
+    items = actual
+    if max_iter > 0:
+        items = items[:max_iter]
+
+    safe_builtins = {
+        "print": print, "len": len, "range": range,
+        "str": str, "int": int, "float": float, "bool": bool,
+        "list": list, "dict": dict, "tuple": tuple, "set": set,
+        "min": min, "max": max, "sum": sum, "abs": abs,
+        "round": round, "sorted": sorted, "enumerate": enumerate,
+        "zip": zip, "map": map, "filter": filter,
+        "isinstance": isinstance, "type": type,
+    }
+
+    loop_results = []
+    for item in items:
+        local_scope = {"item": item, "state": state, "result": None, "json": json}
+        try:
+            exec(code, {"__builtins__": safe_builtins, "json": json}, local_scope)
+            loop_results.append(local_scope.get("result"))
+        except Exception as e:
+            loop_results.append({"error": str(e), "item": item})
+
+    return {"loop_results": loop_results, "count": len(loop_results)}
+
+
+# ---------------------------------------------
+# Custom Node - user-defined node with a name
+# ---------------------------------------------
+def run_custom_node(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      node_name        - display name (cosmetic only at runtime)
+      node_description - description (cosmetic only at runtime)
+      code             - Python snippet: reads from `state`, writes to `result`
+
+    Example code:
+      result["output"] = state.get("status_code", 0) * 2
+    """
+    settings = node.get("data", {}).get("settings", {})
+    code = settings.get("code", "")
+    node_name = settings.get("node_name", "Custom Node")
+
+    local_scope = {"state": state, "result": {}, "json": json}
+
+    safe_builtins = {
+        "print": print, "len": len, "range": range,
+        "str": str, "int": int, "float": float, "bool": bool,
+        "list": list, "dict": dict, "tuple": tuple, "set": set,
+        "min": min, "max": max, "sum": sum, "abs": abs,
+        "round": round, "sorted": sorted, "enumerate": enumerate,
+        "zip": zip, "map": map, "filter": filter,
+        "isinstance": isinstance, "type": type,
+    }
+
+    try:
+        exec(code, {"__builtins__": safe_builtins, "json": json}, local_scope)
+    except Exception as e:
+        raise ValueError(f"Custom node '{node_name}' error: {e}")
+
+    output = local_scope.get("result", {})
+    return {"custom_output": output, "node_name": node_name}
+
+
+# ---------------------------------------------
+# Docker Deploy - runs docker/compose commands
+# ---------------------------------------------
+def run_docker_deploy(node: dict, state: dict) -> dict:
+    """
+    Settings:
+      command     - docker-compose up -d | down | restart | pull | build
+      working_dir - directory containing docker-compose.yml
+      image       - image name override (optional)
+      container   - container name override (optional)
+      timeout     - seconds before the subprocess is killed (default 120)
+    """
+    import subprocess
+    import shlex
+
+    settings = node.get("data", {}).get("settings", {})
+
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    command = interpolate(settings.get("command", "docker-compose up -d"))
+    working_dir = interpolate(settings.get("working_dir", "/app"))
+    image = interpolate(settings.get("image", ""))
+    container = interpolate(settings.get("container", ""))
+    timeout = int(settings.get("timeout", 120) or 120)
+
+    # Substitute {{image}} / {{container}} inside the command string
+    if image:
+        command = command.replace("{{image}}", image)
+    if container:
+        command = command.replace("{{container}}", container)
+
+    try:
+        result = subprocess.run(
+            shlex.split(command),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=working_dir if os.path.isdir(working_dir) else None,
+        )
+        return {
+            "docker_stdout": result.stdout.strip(),
+            "docker_stderr": result.stderr.strip(),
+            "exit_code": result.returncode,
+            "success": result.returncode == 0,
+        }
+    except FileNotFoundError:
+        raise ValueError(
+            f"Docker Deploy: command not found — is Docker installed and on PATH? "
+            f"Command: {command}"
+        )
+    except subprocess.TimeoutExpired:
+        raise ValueError(f"Docker Deploy: command timed out after {timeout}s")
+    except Exception as e:
+        raise ValueError(f"Docker Deploy error: {e}")
+
+
+# ---------------------------------------------
 # Registry - maps type string -> runner function
 # ---------------------------------------------
 NODE_RUNNERS = {
@@ -587,5 +741,9 @@ NODE_RUNNERS = {
     "openai":             run_openai,
     "file_upload":        run_file_upload,
     "parallel_execution": run_parallel_execution,
+    "loop_node":          run_loop_node,
+    "custom_node":        run_custom_node,
+    "docker_deploy":      run_docker_deploy,
 }
+
 

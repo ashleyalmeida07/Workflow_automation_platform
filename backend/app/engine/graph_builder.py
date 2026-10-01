@@ -55,6 +55,14 @@ def run_workflow(workflow_json: dict) -> dict:
     nodes = workflow_json.get("nodes", [])
     edges = workflow_json.get("edges", [])
 
+    if not nodes:
+        return {
+            "status": "failed",
+            "state":  {},
+            "steps":  [],
+            "error":  "Workflow is empty — add at least one node before running.",
+        }
+
     # ── Step 1: build fast lookups ────────────────────────────────────────
     nodes_by_id: dict[str, dict] = {n["id"]: n for n in nodes}
 
@@ -65,27 +73,40 @@ def run_workflow(workflow_json: dict) -> dict:
     for edge in edges:
         src = edge.get("source")
         tgt = edge.get("target")
-        if src and tgt and src in next_nodes:
+        if src and tgt and src in next_nodes and tgt in incoming:
             next_nodes[src].append(tgt)
             incoming[tgt] = incoming.get(tgt, 0) + 1
 
-    # ── Step 2: find start nodes (no incoming edges) ──────────────────────
-    queue = [nid for nid, count in incoming.items() if count == 0]
+    # ── Step 2: multi-strategy start-node detection ───────────────────────
+    # Nodes with these engine types are always valid entry points.
+    TRIGGER_TYPES = {"trigger", "webhook_trigger", "cron_scheduler"}
 
-    if not queue:
-        # Safety fallback: look for a node explicitly typed as 'trigger'
-        for n in nodes:
-            if n.get("data", {}).get("engine_type") == "trigger":
-                queue = [n["id"]]
-                break
+    def engine_type_of(n: dict) -> str:
+        return n.get("data", {}).get("engine_type", "") or ""
 
+    # Strategy 1: zero-in-degree trigger/webhook/cron nodes (best case)
+    queue = [
+        n["id"] for n in nodes
+        if incoming.get(n["id"], 0) == 0
+        and engine_type_of(n) in TRIGGER_TYPES
+    ]
+
+    # Strategy 2: any trigger-type node (ignores incoming edges —
+    #             handles the case where someone wired something *into* a
+    #             trigger by accident, or it sits inside a loop)
     if not queue:
-        return {
-            "status": "failed",
-            "state":  {},
-            "steps":  [],
-            "error":  "No start node found (every node has an incoming edge)",
-        }
+        queue = [n["id"] for n in nodes if engine_type_of(n) in TRIGGER_TYPES]
+
+    # Strategy 3: any zero-in-degree node (handles non-trigger start nodes,
+    #             e.g. someone starts with an HTTP Request or Action directly)
+    if not queue:
+        queue = [nid for nid, count in incoming.items() if count == 0]
+
+    # Strategy 4: last resort — if everything is inside a cycle,
+    #             just start with the first node rather than hard-failing
+    if not queue:
+        queue = [nodes[0]["id"]]
+
 
     # ── Step 3: walk the graph (simple BFS) ──────────────────────────────
     state: dict[str, Any] = {}   # shared output accumulator

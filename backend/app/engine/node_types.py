@@ -313,4 +313,108 @@ NODE_TYPES = {
         "outputs":     [],
         "settings":    {},
     },
+
+    # ── LOOP NODE ──────────────────────────────────────────────────────────
+    "loop_node": {
+        "icon":        "RefreshCw",
+        "name":        "Loop",
+        "description": "Iterate over an array in state. Runs code for each item and collects results.",
+        "color":       "yellow",
+        "engine_type": "loop_node",
+        "category":    "Logic",
+        "inputs":      ["input"],
+        "outputs":     ["results", "count"],
+        "settings": {
+            "array_key": {
+                "type":    "text",
+                "label":   "State Array Key (e.g. response)",
+                "default": "response",
+            },
+            "code": {
+                "type":    "textarea",
+                "label":   "Python Code per item (use `item` and `state`)",
+                "default": "result = {\"processed\": item}",
+            },
+            "max_iterations": {
+                "type":    "number",
+                "label":   "Max Iterations (0 = unlimited)",
+                "default": "100",
+            },
+        },
+    },
+
+    # ── CUSTOM NODE BUILDER ───────────────────────────────────────────────
+    "custom_node": {
+        "icon":        "Wrench",
+        "name":        "Custom Node",
+        "description": "Build your own node: give it a name, description, and Python logic.",
+        "color":       "indigo",
+        "engine_type": "custom_node",
+        "category":    "Logic",
+        "inputs":      ["input"],
+        "outputs":     ["output"],
+        "settings": {
+            "node_name": {
+                "type":    "text",
+                "label":   "Node Display Name",
+                "default": "My Custom Node",
+            },
+            "node_description": {
+                "type":    "text",
+                "label":   "Node Description",
+                "default": "Describe what this node does",
+            },
+            "code": {
+                "type":    "textarea",
+                "label":   "Python Code (read from `state`, write to `result`)",
+                "default": "# Access any state key:\n# value = state.get(\"response\", {})\nresult[\"output\"] = \"Hello from custom node!\"",
+            },
+        },
+    },
+
+    # ── DOCKER DEPLOYMENT ─────────────────────────────────────────────────
+    "docker_deploy": {
+        "icon":        "Box",
+        "name":        "Docker Deploy",
+        "description": "Run a Docker or docker-compose command (up, down, pull, build, restart).",
+        "color":       "blue",
+        "engine_type": "docker_deploy",
+        "category":    "Actions",
+        "inputs":      ["input"],
+        "outputs":     ["output", "exit_code"],
+        "settings": {
+            "command": {
+                "type":    "select",
+                "label":   "Docker Command",
+                "default": "docker-compose up -d",
+                "options": [
+                    "docker-compose up -d",
+                    "docker-compose down",
+                    "docker-compose restart",
+                    "docker-compose pull",
+                    "docker-compose build",
+                ],
+            },
+            "working_dir": {
+                "type":    "text",
+                "label":   "Working Directory (where compose file is)",
+                "default": "/app",
+            },
+            "image": {
+                "type":    "text",
+                "label":   "Image Name (for pull/build overrides)",
+                "default": "",
+            },
+            "container": {
+                "type":    "text",
+                "label":   "Container Name (for start/stop/restart)",
+                "default": "",
+            },
+            "timeout": {
+                "type":    "number",
+                "label":   "Timeout (seconds)",
+                "default": "120",
+            },
+        },
+    },
 }
