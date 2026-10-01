@@ -776,6 +776,12 @@ export default function Flow() {
   const [running,      setRunning]      = useState(false)
   const [execResult,   setExecResult]   = useState(null)
 
+  // Ref always points to latest nodes/edges — avoids stale closure in handleRun
+  const nodesRef = useRef([])
+  const edgesRef = useRef([])
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
+  useEffect(() => { edgesRef.current = edges }, [edges])
+
   // ── Load node-types catalogue (no auth needed) ─────────────────────────
   useEffect(() => {
     fetch(`${API}/node-types/`)
@@ -834,24 +840,25 @@ export default function Flow() {
   const handleRun = async () => {
     if (!workflowId) return
 
-    // Pre-flight checks
-    const { nodes } = getFlowState()
+    // Read current nodes from ref (never stale)
+    const currentNodes = nodesRef.current
+    const currentEdges = edgesRef.current
 
-    if (nodes.length === 0) {
+    if (currentNodes.length === 0) {
       toast.error('Canvas is empty — drag at least one node onto the canvas first.')
       return
     }
 
     // Check for a valid start node (trigger / webhook / cron / any zero-in-degree)
     const TRIGGER_TYPES = new Set(['trigger', 'webhook_trigger', 'cron_scheduler'])
-    const hasTrigger = nodes.some(n => TRIGGER_TYPES.has(n.data?.engine_type))
+    const hasTrigger = currentNodes.some(n => TRIGGER_TYPES.has(n.data?.engine_type))
     if (!hasTrigger) {
       // Warn but don't block — backend will still find a start node via zero-in-degree
       toast('Tip: Add a Trigger, Webhook, or Cron node as the starting point.', { icon: '💡' })
     }
 
     // Check HTTP request nodes for missing URL
-    for (const n of nodes) {
+    for (const n of currentNodes) {
       if (n.data.engine_type === 'http_request' && !n.data.settings?.url) {
         toast.error(`Missing configuration: Node "${n.data.label}" requires a URL.`)
         return
@@ -884,8 +891,11 @@ export default function Flow() {
     }
   }
 
-  // Topbar needs to read current nodes/edges without a closure stale-state issue
-  const getFlowState = useCallback(() => ({ nodes, edges }), [nodes, edges])
+  // getFlowState reads from refs so it never returns stale data
+  const getFlowState = useCallback(() => ({
+    nodes: nodesRef.current,
+    edges: edgesRef.current,
+  }), [])
 
   // Load JSON into canvas
   const handleLoadJSON = useCallback((newNodes, newEdges) => {
