@@ -18,6 +18,9 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import concurrent.futures
 
 # ---------------------------------------------
 # Trigger - just starts the run
@@ -410,21 +413,179 @@ def run_slack(node: dict, state: dict) -> dict:
 
 
 # ---------------------------------------------
+# PostgreSQL Database Node
+# ---------------------------------------------
+def run_postgres_db(node: dict, state: dict) -> dict:
+    settings = node.get("data", {}).get("settings", {})
+    
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str): return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    host = interpolate(settings.get("host", "localhost"))
+    port = interpolate(str(settings.get("port", "5432")))
+    user = interpolate(settings.get("user", "postgres"))
+    password = interpolate(settings.get("password", ""))
+    dbname = interpolate(settings.get("dbname", "postgres"))
+    query = interpolate(settings.get("query", ""))
+
+    try:
+        conn = psycopg2.connect(
+            host=host, port=port, user=user, password=password, dbname=dbname
+        )
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            if query.strip().upper().startswith("SELECT") or query.strip().upper().startswith("WITH"):
+                rows = cur.fetchall()
+                results = [dict(row) for row in rows]
+            else:
+                conn.commit()
+                results = {"rowcount": cur.rowcount}
+        conn.close()
+    except Exception as e:
+        raise ValueError(f"PostgreSQL node error: {e}")
+
+    return {"db_results": results}
+
+
+# ---------------------------------------------
+# OpenAI Node
+# ---------------------------------------------
+def run_openai(node: dict, state: dict) -> dict:
+    settings = node.get("data", {}).get("settings", {})
+    
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str): return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    api_key = interpolate(settings.get("api_key", ""))
+    model = interpolate(settings.get("model", "gpt-3.5-turbo"))
+    prompt = interpolate(settings.get("prompt", ""))
+
+    if not api_key:
+        raise ValueError("OpenAI node: 'api_key' is required")
+    if not prompt:
+        raise ValueError("OpenAI node: 'prompt' is required")
+
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}]
+    }
+
+    try:
+        with httpx.Client(timeout=30) as client:
+            response = client.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        ai_response = data["choices"][0]["message"]["content"]
+    except Exception as e:
+        raise ValueError(f"OpenAI node error: {e}")
+
+    return {"openai_response": ai_response}
+
+
+# ---------------------------------------------
+# File Upload / Read Node
+# ---------------------------------------------
+def run_file_upload(node: dict, state: dict) -> dict:
+    settings = node.get("data", {}).get("settings", {})
+    
+    def interpolate(text: str) -> str:
+        if not isinstance(text, str): return text
+        for key, val in state.items():
+            text = text.replace(f"{{{{{key}}}}}", str(val))
+        return text
+
+    source = settings.get("source", "local")
+    
+    if source == "local":
+        file_path = interpolate(settings.get("file_path", ""))
+        if not file_path:
+            raise ValueError("File Upload node: 'file_path' is required for local source")
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            raise ValueError(f"File Upload node error reading local file: {e}")
+    else:
+        payload_key = interpolate(settings.get("payload_key", "payload.file_content"))
+        actual = state
+        for part in payload_key.split("."):
+            actual = actual.get(part) if isinstance(actual, dict) else None
+        if actual is None:
+            raise ValueError(f"File Upload node: key '{payload_key}' not found in state")
+        content = str(actual)
+
+    return {"file_content": content}
+
+
+# ---------------------------------------------
+# Parallel Execution Node
+# ---------------------------------------------
+def run_parallel_execution(node: dict, state: dict) -> dict:
+    settings = node.get("data", {}).get("settings", {})
+    array_key = settings.get("array_key", "")
+    code = settings.get("code", "result = item")
+
+    actual = state
+    for part in array_key.split("."):
+        actual = actual.get(part) if isinstance(actual, dict) else None
+        
+    if not isinstance(actual, list):
+        raise ValueError(f"Parallel Execution node: expected list at '{array_key}', got {type(actual)}")
+        
+    def process_item(item):
+        local_scope = {"item": item, "state": state, "result": None, "json": json}
+        safe_builtins = {
+            "print": print, "len": len, "range": range,
+            "str": str, "int": int, "float": float, "bool": bool,
+            "list": list, "dict": dict, "tuple": tuple, "set": set,
+            "min": min, "max": max, "sum": sum, "abs": abs,
+            "round": round, "sorted": sorted, "enumerate": enumerate,
+            "zip": zip, "map": map, "filter": filter,
+            "isinstance": isinstance, "type": type,
+        }
+        try:
+            exec(code, {"__builtins__": safe_builtins, "json": json}, local_scope)
+            return local_scope.get("result")
+        except Exception as e:
+            return {"error": str(e)}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(process_item, actual))
+
+    return {"parallel_results": results}
+
+
+# ---------------------------------------------
 # Registry - maps type string -> runner function
 # ---------------------------------------------
 NODE_RUNNERS = {
-    "trigger":         run_trigger,
-    "webhook_trigger": run_webhook_trigger,
-    "cron_scheduler":  run_cron_scheduler,
-    "http_request":    run_http_request,
-    "email":           run_email,
-    "slack":           run_slack,
-    "delay":           run_delay,
-    "python_function": run_python_function,
-    "condition":       run_condition,
-    "logger":          run_logger,
-    "action":          run_action,
-    "end":             run_end,
-    "local_storage":   run_local_storage,
+    "trigger":            run_trigger,
+    "webhook_trigger":    run_webhook_trigger,
+    "cron_scheduler":     run_cron_scheduler,
+    "http_request":       run_http_request,
+    "email":              run_email,
+    "slack":              run_slack,
+    "delay":              run_delay,
+    "python_function":    run_python_function,
+    "condition":          run_condition,
+    "logger":             run_logger,
+    "action":             run_action,
+    "end":                run_end,
+    "local_storage":      run_local_storage,
+    "postgres_db":        run_postgres_db,
+    "openai":             run_openai,
+    "file_upload":        run_file_upload,
+    "parallel_execution": run_parallel_execution,
 }
 

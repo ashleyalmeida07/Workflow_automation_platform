@@ -236,6 +236,72 @@ NODE_TYPES = {
         },
     },
 
+    "postgres_db": {
+        "icon":        "Database",
+        "name":        "PostgreSQL Query",
+        "description": "Execute a query against a PostgreSQL database",
+        "color":       "indigo",
+        "engine_type": "postgres_db",
+        "category":    "Actions",
+        "inputs":      ["input"],
+        "outputs":     ["results"],
+        "settings": {
+            "host":     {"type": "text", "label": "Host", "default": "localhost"},
+            "port":     {"type": "number", "label": "Port", "default": "5432"},
+            "user":     {"type": "text", "label": "Username", "default": "postgres"},
+            "password": {"type": "text", "label": "Password", "default": ""},
+            "dbname":   {"type": "text", "label": "Database Name", "default": "postgres"},
+            "query":    {"type": "textarea", "label": "SQL Query", "default": "SELECT * FROM users;"},
+        },
+    },
+
+    "openai": {
+        "icon":        "Sparkles",
+        "name":        "OpenAI",
+        "description": "Send a prompt to OpenAI's language models",
+        "color":       "purple",
+        "engine_type": "openai",
+        "category":    "Actions",
+        "inputs":      ["input"],
+        "outputs":     ["response"],
+        "settings": {
+            "api_key": {"type": "text", "label": "OpenAI API Key", "default": ""},
+            "model":   {"type": "text", "label": "Model", "default": "gpt-3.5-turbo"},
+            "prompt":  {"type": "textarea", "label": "Prompt", "default": "Hello, how are you {{name}}?"},
+        },
+    },
+
+    "file_upload": {
+        "icon":        "Upload",
+        "name":        "File Upload / Read",
+        "description": "Read a file from the local filesystem or a webhook payload",
+        "color":       "teal",
+        "engine_type": "file_upload",
+        "category":    "Utilities",
+        "inputs":      ["input"],
+        "outputs":     ["file_content"],
+        "settings": {
+            "source":      {"type": "select", "label": "Source", "default": "local", "options": ["local", "webhook"]},
+            "file_path":   {"type": "text", "label": "Local File Path", "default": "data.txt"},
+            "payload_key": {"type": "text", "label": "Webhook Payload Key", "default": "payload.file_content"},
+        },
+    },
+
+    "parallel_execution": {
+        "icon":        "Layers",
+        "name":        "Parallel Execution",
+        "description": "Run Python code concurrently on each item of an array",
+        "color":       "yellow",
+        "engine_type": "parallel_execution",
+        "category":    "Logic",
+        "inputs":      ["input"],
+        "outputs":     ["results"],
+        "settings": {
+            "array_key": {"type": "text", "label": "Array State Key", "default": "storage_data"},
+            "code": {"type": "textarea", "label": "Python Code per item", "default": "result = item"},
+        },
+    },
+
     "end": {
         "icon":        "CheckCircle",
         "name":        "End",
