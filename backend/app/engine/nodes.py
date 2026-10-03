@@ -357,14 +357,20 @@ def run_email(node: dict, state: dict) -> dict:
     msg["To"]      = to_email
     msg.attach(MIMEText(body_text, "plain"))
 
-    # Send via STARTTLS
+    # Send via STARTTLS (Port 587) or SSL (Port 465)
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            recipients = [addr.strip() for addr in to_email.split(",")]
-            server.sendmail(from_email or smtp_user, recipients, msg.as_string())
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
+                server.login(smtp_user, smtp_password)
+                recipients = [addr.strip() for addr in to_email.split(",")]
+                server.sendmail(from_email or smtp_user, recipients, msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                recipients = [addr.strip() for addr in to_email.split(",")]
+                server.sendmail(from_email or smtp_user, recipients, msg.as_string())
     except smtplib.SMTPException as e:
         raise ValueError(f"Email node SMTP error: {e}")
     except OSError as e:
