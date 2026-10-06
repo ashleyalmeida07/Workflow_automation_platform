@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Manual Trigger",
+        "engine_type": "trigger",
+        "settings": {}
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "action",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "Fetch Random Joke API",
+        "engine_type": "http_request",
+        "settings": {
+          "method": "GET",
+          "url": "https://official-joke-api.appspot.com/random_joke",
+          "headers": "{}",
+          "body": ""
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "action",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "Terminal Logger",
+        "engine_type": "logger",
+        "settings": {
+          "message": "Fetched Joke: {{response}}",
+          "level": "info"
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "action",
+      "position": { "x": 1000, "y": 100 },
+      "data": {
+        "label": "End",
+        "engine_type": "end",
+        "settings": {}
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

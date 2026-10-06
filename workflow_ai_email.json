@@ -1,0 +1,65 @@
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Manual Trigger",
+        "engine_type": "trigger",
+        "settings": {}
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "action",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "AI Chat",
+        "engine_type": "ai_chat",
+        "settings": {
+          "base_url": "https://openrouter.ai/api/v1",
+          "api_key": "YOUR_OPENROUTER_API_KEY",
+          "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "system_prompt": "You are a helpful assistant.",
+          "prompt": "Write a short test email saying the server is successfully running.",
+          "max_tokens": 512
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "action",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "Send Email",
+        "engine_type": "email",
+        "settings": {
+          "smtp_host": "smtp.gmail.com",
+          "smtp_port": 465,
+          "smtp_user": "your_email@gmail.com",
+          "smtp_password": "YOUR_APP_PASSWORD",
+          "from_email": "your_email@gmail.com",
+          "to_email": "recipient@example.com",
+          "subject": "Server Update",
+          "body": "{{ai_response}}"
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "action",
+      "position": { "x": 1000, "y": 100 },
+      "data": {
+        "label": "End",
+        "engine_type": "end",
+        "settings": {}
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

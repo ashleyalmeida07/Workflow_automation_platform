@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "n1", "type": "trigger", "position": { "x": 100, "y": 100 }, "data": { "label": "Manual Trigger", "engine_type": "trigger", "settings": {} } },
+    { "id": "n2", "type": "action", "position": { "x": 350, "y": 100 }, "data": { "label": "Query Database", "engine_type": "postgres_db", "settings": { "host": "ep-orange-sun-axjkwpv1-pooler.c-4.us-east-2.aws.neon.tech", "port": 5432, "user": "neondb_owner", "password": "npg_Ool1Mx0VgUNJ", "dbname": "neondb", "query": "SELECT id, email FROM users LIMIT 3;" } } },
+    { "id": "n3", "type": "action", "position": { "x": 600, "y": 100 }, "data": { "label": "Loop Over Users", "engine_type": "loop_node", "settings": { "array_key": "db_results", "code": "result = f\"User: {item.get('email')} (ID: {item.get('id')})\"", "max_iterations": 100 } } },
+    { "id": "n4", "type": "action", "position": { "x": 850, "y": 100 }, "data": { "label": "Send Slack Alert", "engine_type": "slack", "settings": { "webhook_url": "https://example.com/slack-webhook", "username": "DB Bot", "channel": "", "message": "Here are the latest users:\n{{loop_results}}" } } },
+    { "id": "n5", "type": "action", "position": { "x": 1100, "y": 100 }, "data": { "label": "End", "engine_type": "end", "settings": {} } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" },
+    { "id": "e3", "source": "n3", "target": "n4" },
+    { "id": "e4", "source": "n4", "target": "n5" }
+  ]
+}

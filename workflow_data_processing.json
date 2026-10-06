@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "id": "n1", "type": "trigger", "position": { "x": 100, "y": 100 }, "data": { "label": "Manual Trigger", "engine_type": "trigger", "settings": {} } },
+    { "id": "n2", "type": "action", "position": { "x": 350, "y": 100 }, "data": { "label": "Fetch Random User", "engine_type": "http_request", "settings": { "method": "GET", "url": "https://randomuser.me/api/", "headers": "{}", "body": "" } } },
+    { "id": "n3", "type": "action", "position": { "x": 600, "y": 100 }, "data": { "label": "Extract Age (Python)", "engine_type": "python_function", "settings": { "code": "user = state.get('response', {}).get('results', [{}])[0]\nresult['age'] = user.get('dob', {}).get('age', 0)\nresult['name'] = user.get('name', {}).get('first', 'Unknown')" } } },
+    { "id": "n4", "type": "action", "position": { "x": 850, "y": 100 }, "data": { "label": "Check Age > 30", "engine_type": "condition", "settings": { "field": "age", "operator": "gt", "value": "30" } } },
+    { "id": "n5", "type": "action", "position": { "x": 1100, "y": 100 }, "data": { "label": "Save to Local JSON", "engine_type": "local_storage", "settings": { "operation": "append", "file_name": "adult_users.json", "data": "{\"name\": \"{{name}}\", \"age\": {{age}}}" } } },
+    { "id": "n6", "type": "action", "position": { "x": 1350, "y": 100 }, "data": { "label": "End", "engine_type": "end", "settings": {} } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" },
+    { "id": "e3", "source": "n3", "target": "n4" },
+    { "id": "e4", "source": "n4", "target": "n5" },
+    { "id": "e5", "source": "n5", "target": "n6" }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Daily Cron Trigger",
+        "engine_type": "cron_scheduler",
+        "settings": {
+          "cron_expression": "0 9 * * 1-5",
+          "timezone": "UTC"
+        }
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "action",
+      "position": { "x": 400, "y": 100 },
+      "data": {
+        "label": "Fetch Daily News",
+        "engine_type": "http_request",
+        "settings": {
+          "method": "GET",
+          "url": "https://dummyjson.com/posts?limit=3",
+          "headers": "{}",
+          "body": ""
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "action",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "AI Summarizer",
+        "engine_type": "ai_chat",
+        "settings": {
+          "base_url": "https://openrouter.ai/api/v1",
+          "api_key": "YOUR_OPENROUTER_KEY",
+          "model": "meta-llama/llama-3.1-8b-instruct:free",
+          "system_prompt": "You are a helpful assistant.",
+          "prompt": "Please summarize these posts into a short morning brief: {{response}}",
+          "max_tokens": 512
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "action",
+      "position": { "x": 1000, "y": 100 },
+      "data": {
+        "label": "Send Morning Brief",
+        "engine_type": "email",
+        "settings": {
+          "smtp_host": "smtp.gmail.com",
+          "smtp_port": 465,
+          "smtp_user": "your_email@gmail.com",
+          "smtp_password": "YOUR_APP_PASSWORD",
+          "from_email": "your_email@gmail.com",
+          "to_email": "team@example.com",
+          "subject": "Morning News Summary",
+          "body": "Here is your morning brief:\n\n{{ai_response}}"
+        }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "action",
+      "position": { "x": 1300, "y": 100 },
+      "data": {
+        "label": "Finish",
+        "engine_type": "end",
+        "settings": {}
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1-2",
+      "source": "node-1",
+      "target": "node-2"
+    },
+    {
+      "id": "edge-2-3",
+      "source": "node-2",
+      "target": "node-3"
+    },
+    {
+      "id": "edge-3-4",
+      "source": "node-3",
+      "target": "node-4"
+    },
+    {
+      "id": "edge-4-5",
+      "source": "node-4",
+      "target": "node-5"
+    }
+  ]
+}

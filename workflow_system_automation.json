@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "n1", "type": "trigger", "position": { "x": 100, "y": 100 }, "data": { "label": "Webhook Trigger", "engine_type": "webhook_trigger", "settings": { "method": "POST", "secret": "" } } },
+    { "id": "n2", "type": "action", "position": { "x": 350, "y": 100 }, "data": { "label": "Wait 2 Seconds", "engine_type": "delay", "settings": { "seconds": 2 } } },
+    { "id": "n3", "type": "action", "position": { "x": 600, "y": 100 }, "data": { "label": "Restart Docker", "engine_type": "docker_deploy", "settings": { "command": "docker-compose restart", "working_dir": "/app", "image": "", "container": "", "timeout": 120 } } },
+    { "id": "n4", "type": "action", "position": { "x": 850, "y": 100 }, "data": { "label": "Create Action Log", "engine_type": "action", "settings": { "message": "Docker restarted via webhook. Exit code: {{exit_code}}" } } },
+    { "id": "n5", "type": "action", "position": { "x": 1100, "y": 100 }, "data": { "label": "End", "engine_type": "end", "settings": {} } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" },
+    { "id": "e3", "source": "n3", "target": "n4" },
+    { "id": "e4", "source": "n4", "target": "n5" }
+  ]
+}
