@@ -246,6 +246,7 @@ NODE_TYPES = {
         "inputs":      ["input"],
         "outputs":     ["results"],
         "settings": {
+            "credential_id": {"type": "credential", "label": "Saved Credential (overrides fields below)", "default": "", "credential_type": "postgres_db"},
             "host":     {"type": "text", "label": "Host", "default": "localhost"},
             "port":     {"type": "number", "label": "Port", "default": "5432"},
             "user":     {"type": "text", "label": "Username", "default": "postgres"},
@@ -265,6 +266,12 @@ NODE_TYPES = {
         "inputs":      ["input"],
         "outputs":     ["ai_response"],
         "settings": {
+            "credential_id": {
+                "type":            "credential",
+                "label":           "Saved Credential (overrides API key below)",
+                "default":         "",
+                "credential_type": "openai",
+            },
             "base_url": {
                 "type":    "text",
                 "label":   "API Base URL",

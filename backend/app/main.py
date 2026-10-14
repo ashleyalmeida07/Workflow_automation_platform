@@ -9,11 +9,13 @@ from app.routers.auth import router as auth_router
 from app.routers.workflows import router as workflows_router
 from app.routers.node_types import router as node_types_router
 from app.routers.executions import router as executions_router
+from app.routers.credentials import router as credentials_router
 
 # Import models so SQLAlchemy knows about them when creating tables
 import app.models.user       # noqa: F401
 import app.models.workflow   # noqa: F401
 import app.models.execution  # noqa: F401
+import app.models.credential # noqa: F401
 
 from sqlalchemy.exc import OperationalError, DatabaseError
 from fastapi.responses import JSONResponse
@@ -84,6 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(workflows_router)
     app.include_router(node_types_router)
     app.include_router(executions_router)
+    app.include_router(credentials_router)
 
     return app
 

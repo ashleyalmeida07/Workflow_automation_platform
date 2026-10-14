@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
+import Credentials from './pages/Credentials'
 
 import { Toaster } from 'react-hot-toast'
 
@@ -25,6 +26,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/flow" element={<Flow />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/credentials" element={<Credentials />} />
 
         {/* Legacy home */}
         <Route path="/home" element={<Home />} />

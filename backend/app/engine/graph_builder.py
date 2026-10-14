@@ -18,7 +18,6 @@ def _node_type(node: dict) -> str:
     """Map the React-Flow node type to our internal engine type."""
     rf_type  = node.get("type", "default")
     label    = node.get("data", {}).get("label", "").lower()
-    settings = node.get("data", {}).get("settings", {})
 
     # Explicit engine type set by the frontend takes priority
     engine_type = node.get("data", {}).get("engine_type", "")
@@ -42,7 +41,7 @@ def _node_type(node: dict) -> str:
     return "action"  # safe default
 
 
-def run_workflow(workflow_json: dict) -> dict:
+def run_workflow(workflow_json: dict, db=None, user_id: int | None = None) -> dict:
     """
     Execute a workflow and return a result dict:
       {
@@ -51,17 +50,12 @@ def run_workflow(workflow_json: dict) -> dict:
         "steps":  [ { "node_id", "type", "label", "output", "error" }, ... ],
         "error":  "..." (only present on failure)
       }
+
+    db and user_id are optional — when provided, node runners can call
+    resolve_credential() to inject decrypted secrets at execution time.
     """
     nodes = workflow_json.get("nodes", [])
     edges = workflow_json.get("edges", [])
-
-    if not nodes:
-        return {
-            "status": "failed",
-            "state":  {},
-            "steps":  [],
-            "error":  "Workflow is empty — add at least one node before running.",
-        }
 
     # ── Step 1: build fast lookups ────────────────────────────────────────
     nodes_by_id: dict[str, dict] = {n["id"]: n for n in nodes}
@@ -73,40 +67,27 @@ def run_workflow(workflow_json: dict) -> dict:
     for edge in edges:
         src = edge.get("source")
         tgt = edge.get("target")
-        if src and tgt and src in next_nodes and tgt in incoming:
+        if src and tgt and src in next_nodes:
             next_nodes[src].append(tgt)
             incoming[tgt] = incoming.get(tgt, 0) + 1
 
-    # ── Step 2: multi-strategy start-node detection ───────────────────────
-    # Nodes with these engine types are always valid entry points.
-    TRIGGER_TYPES = {"trigger", "webhook_trigger", "cron_scheduler"}
+    # ── Step 2: find start nodes (no incoming edges) ──────────────────────
+    queue = [nid for nid, count in incoming.items() if count == 0]
 
-    def engine_type_of(n: dict) -> str:
-        return n.get("data", {}).get("engine_type", "") or ""
-
-    # Strategy 1: zero-in-degree trigger/webhook/cron nodes (best case)
-    queue = [
-        n["id"] for n in nodes
-        if incoming.get(n["id"], 0) == 0
-        and engine_type_of(n) in TRIGGER_TYPES
-    ]
-
-    # Strategy 2: any trigger-type node (ignores incoming edges —
-    #             handles the case where someone wired something *into* a
-    #             trigger by accident, or it sits inside a loop)
     if not queue:
-        queue = [n["id"] for n in nodes if engine_type_of(n) in TRIGGER_TYPES]
+        # Safety fallback: look for a node explicitly typed as 'trigger'
+        for n in nodes:
+            if n.get("data", {}).get("engine_type") == "trigger":
+                queue = [n["id"]]
+                break
 
-    # Strategy 3: any zero-in-degree node (handles non-trigger start nodes,
-    #             e.g. someone starts with an HTTP Request or Action directly)
     if not queue:
-        queue = [nid for nid, count in incoming.items() if count == 0]
-
-    # Strategy 4: last resort — if everything is inside a cycle,
-    #             just start with the first node rather than hard-failing
-    if not queue:
-        queue = [nodes[0]["id"]]
-
+        return {
+            "status": "failed",
+            "state":  {},
+            "steps":  [],
+            "error":  "No start node found (every node has an incoming edge)",
+        }
 
     # ── Step 3: walk the graph (simple BFS) ──────────────────────────────
     state: dict[str, Any] = {}   # shared output accumulator
@@ -134,7 +115,9 @@ def run_workflow(workflow_json: dict) -> dict:
             # Still continue to next nodes
         else:
             try:
-                output = runner(node, state)
+                # Pass db + user_id as kwargs; runners that don't need them
+                # accept **kwargs to stay backward-compatible.
+                output = runner(node, state, db=db, user_id=user_id)
                 state.update(output)
                 step["output"] = output
             except Exception as exc:

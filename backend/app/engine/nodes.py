@@ -22,17 +22,49 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import concurrent.futures
 
+
+def _resolve_cred(settings: dict, user_id, db) -> dict:
+    """
+    If the node has a 'credential_id' setting, fetch + decrypt that credential
+    and merge its fields INTO the settings dict (in-place copy returned).
+    Fields from the credential override the raw node settings.
+    """
+    cred_id = settings.get("credential_id", "") or ""
+    if not cred_id or not db or not user_id:
+        return dict(settings)
+    try:
+        cred_id_int = int(cred_id)
+    except (ValueError, TypeError):
+        return dict(settings)
+
+    from app.models.credential import Credential
+    from app.crypto import decrypt_secret
+
+    cred = db.query(Credential).filter(
+        Credential.id == cred_id_int,
+        Credential.user_id == user_id,
+    ).first()
+    if not cred:
+        raise ValueError(f"Credential #{cred_id_int} not found")
+
+    secret_fields = decrypt_secret(cred.encrypted_value, user_id)
+    merged = dict(settings)
+    merged.update(secret_fields)   # credential fields override node fields
+    return merged
+
+
 # ---------------------------------------------
 # Trigger - just starts the run
 # ---------------------------------------------
-def run_trigger(node: dict, state: dict) -> dict:
+def run_trigger(node: dict, state: dict, **kwargs) -> dict:
     return {"triggered": True}
+
 
 
 # ---------------------------------------------
 # HTTP Request - fires an HTTP call
 # ---------------------------------------------
-def run_http_request(node: dict, state: dict) -> dict:
+def run_http_request(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     method   = settings.get("method", "GET").upper()
     url      = settings.get("url", "").strip()
@@ -90,7 +122,7 @@ def run_http_request(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Delay - pauses the workflow for N seconds
 # ---------------------------------------------
-def run_delay(node: dict, state: dict) -> dict:
+def run_delay(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     seconds  = float(settings.get("seconds", 1))
     time.sleep(seconds)
@@ -100,7 +132,7 @@ def run_delay(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Python Function - runs a small Python snippet
 # ---------------------------------------------
-def run_python_function(node: dict, state: dict) -> dict:
+def run_python_function(node: dict, state: dict, **kwargs) -> dict:
     """
     Write code in the 'code' setting.
     `state` is available inside the snippet.
@@ -136,7 +168,7 @@ def run_python_function(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Condition - branch on a state value
 # ---------------------------------------------
-def run_condition(node: dict, state: dict) -> dict:
+def run_condition(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       field    - state key to read  (e.g. "status_code")
@@ -175,7 +207,7 @@ def run_condition(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Logger - log a message with state placeholders
 # ---------------------------------------------
-def run_logger(node: dict, state: dict) -> dict:
+def run_logger(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       message - text with {{key}} placeholders from state
@@ -201,7 +233,7 @@ def run_logger(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Action - generic message step
 # ---------------------------------------------
-def run_action(node: dict, state: dict) -> dict:
+def run_action(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     message  = settings.get("message", "Action executed")
     for key, val in state.items():
@@ -212,14 +244,14 @@ def run_action(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # End - marks the last node, returns full state
 # ---------------------------------------------
-def run_end(node: dict, state: dict) -> dict:
+def run_end(node: dict, state: dict, **kwargs) -> dict:
     return {"final_state": dict(state)}
 
 
 # ---------------------------------------------
 # Local Storage - JSON file operations
 # ---------------------------------------------
-def run_local_storage(node: dict, state: dict) -> dict:
+def run_local_storage(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     operation = settings.get("operation", "read")
     file_name = settings.get("file_name", "storage.json")
@@ -275,7 +307,7 @@ def run_local_storage(node: dict, state: dict) -> dict:
 # When run inside the graph it just passes the
 # incoming payload (stored in state) forward.
 # ---------------------------------------------
-def run_webhook_trigger(node: dict, state: dict) -> dict:
+def run_webhook_trigger(node: dict, state: dict, **kwargs) -> dict:
     """
     In a real deployment an API endpoint receives
     the incoming HTTP request and stores the body
@@ -295,7 +327,7 @@ def run_webhook_trigger(node: dict, state: dict) -> dict:
 # that calls execute). This runner just records
 # what schedule it is configured for.
 # ---------------------------------------------
-def run_cron_scheduler(node: dict, state: dict) -> dict:
+def run_cron_scheduler(node: dict, state: dict, **kwargs) -> dict:
     """
     In a real deployment a scheduler (e.g. APScheduler)
     triggers the workflow at the configured time.
@@ -314,7 +346,7 @@ def run_cron_scheduler(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Email - sends via SMTP (TLS on port 587)
 # ---------------------------------------------
-def run_email(node: dict, state: dict) -> dict:
+def run_email(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       smtp_host     - e.g. smtp.gmail.com
@@ -382,7 +414,7 @@ def run_email(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Slack - posts a message via Incoming Webhook
 # ---------------------------------------------
-def run_slack(node: dict, state: dict) -> dict:
+def run_slack(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       webhook_url - Slack Incoming Webhook URL
@@ -421,21 +453,22 @@ def run_slack(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # PostgreSQL Database Node
 # ---------------------------------------------
-def run_postgres_db(node: dict, state: dict) -> dict:
-    settings = node.get("data", {}).get("settings", {})
-    
+def run_postgres_db(node: dict, state: dict, db=None, user_id=None, **kwargs) -> dict:
+    raw_settings = node.get("data", {}).get("settings", {})
+    settings = _resolve_cred(raw_settings, user_id, db)
+
     def interpolate(text: str) -> str:
         if not isinstance(text, str): return text
         for key, val in state.items():
             text = text.replace(f"{{{{{key}}}}}", str(val))
         return text
 
-    host = interpolate(settings.get("host", "localhost"))
-    port = interpolate(str(settings.get("port", "5432")))
-    user = interpolate(settings.get("user", "postgres"))
+    host     = interpolate(settings.get("host", "localhost"))
+    port     = interpolate(str(settings.get("port", "5432")))
+    user     = interpolate(settings.get("user", "postgres"))
     password = interpolate(settings.get("password", ""))
-    dbname = interpolate(settings.get("dbname", "postgres"))
-    query = interpolate(settings.get("query", ""))
+    dbname   = interpolate(settings.get("dbname", "postgres"))
+    query    = interpolate(settings.get("query", ""))
 
     try:
         conn = psycopg2.connect(
@@ -461,21 +494,9 @@ def run_postgres_db(node: dict, state: dict) -> dict:
 # Supported: OpenAI, OpenRouter, NVIDIA NIM,
 #            Ollama, Together AI, Groq, etc.
 # ---------------------------------------------
-def run_ai_chat(node: dict, state: dict) -> dict:
-    """
-    Settings:
-      base_url      - API base URL  (default: https://api.openai.com/v1)
-                      OpenRouter  : https://openrouter.ai/api/v1
-                      NVIDIA NIM  : https://integrate.api.nvidia.com/v1
-                      Groq        : https://api.groq.com/openai/v1
-                      Ollama      : http://localhost:11434/v1
-      api_key       - API key (leave blank for Ollama local)
-      model         - model name (e.g. gpt-4o-mini, mistralai/mistral-7b-instruct)
-      system_prompt - optional system role message
-      prompt        - user prompt with {{state_key}} placeholders
-      max_tokens    - max response tokens (default 512)
-    """
-    settings = node.get("data", {}).get("settings", {})
+def run_ai_chat(node: dict, state: dict, db=None, user_id=None, **kwargs) -> dict:
+    raw_settings = node.get("data", {}).get("settings", {})
+    settings = _resolve_cred(raw_settings, user_id, db)
 
     def interpolate(text: str) -> str:
         if not isinstance(text, str): return text
@@ -534,7 +555,7 @@ def run_ai_chat(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # File Upload / Read Node
 # ---------------------------------------------
-def run_file_upload(node: dict, state: dict) -> dict:
+def run_file_upload(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     
     def interpolate(text: str) -> str:
@@ -569,7 +590,7 @@ def run_file_upload(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Parallel Execution Node
 # ---------------------------------------------
-def run_parallel_execution(node: dict, state: dict) -> dict:
+def run_parallel_execution(node: dict, state: dict, **kwargs) -> dict:
     settings = node.get("data", {}).get("settings", {})
     array_key = settings.get("array_key", "")
     code = settings.get("code", "result = item")
@@ -607,7 +628,7 @@ def run_parallel_execution(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Loop Node - sequential iteration over an array
 # ---------------------------------------------
-def run_loop_node(node: dict, state: dict) -> dict:
+def run_loop_node(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       array_key      - dotted path in state to an array (e.g. "response.items")
@@ -662,7 +683,7 @@ def run_loop_node(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Custom Node - user-defined node with a name
 # ---------------------------------------------
-def run_custom_node(node: dict, state: dict) -> dict:
+def run_custom_node(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       node_name        - display name (cosmetic only at runtime)
@@ -700,7 +721,7 @@ def run_custom_node(node: dict, state: dict) -> dict:
 # ---------------------------------------------
 # Docker Deploy - runs docker/compose commands
 # ---------------------------------------------
-def run_docker_deploy(node: dict, state: dict) -> dict:
+def run_docker_deploy(node: dict, state: dict, **kwargs) -> dict:
     """
     Settings:
       command     - docker-compose up -d | down | restart | pull | build

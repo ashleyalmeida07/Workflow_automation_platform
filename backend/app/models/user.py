@@ -8,6 +8,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from .workflow import Workflow
+    from .credential import Credential
 
 
 class User(Base):
@@ -46,4 +47,11 @@ class User(Base):
     workflows: Mapped[list["Workflow"]] = relationship(
         "Workflow",
         back_populates="user"
+    )
+
+    credentials: Mapped[list["Credential"]] = relationship(
+        "Credential",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

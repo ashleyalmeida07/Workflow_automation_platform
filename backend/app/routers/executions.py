@@ -83,8 +83,8 @@ def execute_workflow(
     db.commit()
     db.refresh(execution)
 
-    # ── 3. Run the graph ──────────────────────────────────────────────────
-    result = run_workflow(workflow.workflow_json)
+    # ── 3. Run the graph (pass db + user_id for credential resolution) ───
+    result = run_workflow(workflow.workflow_json, db=db, user_id=current_user.id)
 
     # ── 4. Persist the result ─────────────────────────────────────────────
     try:
