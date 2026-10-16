@@ -1,20 +1,31 @@
 /*
-  Credentials.jsx – Encrypted Credentials Vault page
+  Credentials.jsx – Encrypted Credentials Vault
   Route: /credentials
 
-  Users can save named credential sets (Postgres DB, OpenAI key, etc.)
   Secrets are encrypted on the backend (AES-256-GCM) — the frontend
   never receives raw plaintext values back, only the credential name + type.
-
-  UI:
-    - Left list of saved credentials
-    - Right panel: Create / Edit form (type-aware field groups)
-    - Delete with confirmation
 */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { DashboardLayout } from '../components/ui/dashboard-sidebar'
+import { T } from '../theme'
 import toast from 'react-hot-toast'
+import {
+  KeyRound,
+  Database,
+  Bot,
+  MessageSquare,
+  Mail,
+  Globe,
+  Lock,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  ChevronRight,
+  Eye,
+  EyeOff,
+} from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -35,12 +46,12 @@ async function apiFetch(url, opts = {}) {
   return res
 }
 
-// ── Credential type definitions (what fields each type requires) ──────────
+// ── Credential type definitions ───────────────────────────────────────────────
 const CRED_TYPES = {
   postgres_db: {
     label:  'PostgreSQL Database',
     color:  'indigo',
-    icon:   '🗄️',
+    Icon:   Database,
     fields: [
       { key: 'host',     label: 'Host',          placeholder: 'localhost',  type: 'text'     },
       { key: 'port',     label: 'Port',          placeholder: '5432',       type: 'number'   },
@@ -51,36 +62,36 @@ const CRED_TYPES = {
   },
   openai: {
     label:  'OpenAI / AI Provider',
-    color:  'purple',
-    icon:   '🤖',
+    color:  'violet',
+    Icon:   Bot,
     fields: [
-      { key: 'api_key',  label: 'API Key',       placeholder: 'sk-••••••••', type: 'password' },
-      { key: 'base_url', label: 'Base URL (optional override)', placeholder: 'https://api.openai.com/v1', type: 'text' },
+      { key: 'api_key',  label: 'API Key',                     placeholder: 'sk-••••••••',                    type: 'password' },
+      { key: 'base_url', label: 'Base URL (optional override)', placeholder: 'https://api.openai.com/v1',      type: 'text'     },
     ],
   },
   slack: {
     label:  'Slack Webhook',
     color:  'green',
-    icon:   '💬',
+    Icon:   MessageSquare,
     fields: [
-      { key: 'webhook_url', label: 'Slack Webhook URL', placeholder: 'https://hooks.slack.com/services/...', type: 'text' },
+      { key: 'webhook_url', label: 'Webhook URL', placeholder: 'https://hooks.slack.com/services/...', type: 'text' },
     ],
   },
   email: {
     label:  'SMTP Email',
     color:  'blue',
-    icon:   '📧',
+    Icon:   Mail,
     fields: [
       { key: 'smtp_host',     label: 'SMTP Host',     placeholder: 'smtp.gmail.com', type: 'text'     },
       { key: 'smtp_port',     label: 'SMTP Port',     placeholder: '587',            type: 'number'   },
-      { key: 'smtp_user',     label: 'SMTP Username', placeholder: 'you@gmail.com',  type: 'text'     },
-      { key: 'smtp_password', label: 'SMTP Password', placeholder: '••••••••',       type: 'password' },
+      { key: 'smtp_user',     label: 'Username',      placeholder: 'you@gmail.com',  type: 'text'     },
+      { key: 'smtp_password', label: 'Password',      placeholder: '••••••••',       type: 'password' },
     ],
   },
   http_request: {
     label:  'HTTP Bearer Token',
     color:  'cyan',
-    icon:   '🌐',
+    Icon:   Globe,
     fields: [
       { key: 'bearer_token', label: 'Bearer Token', placeholder: 'eyJ...', type: 'password' },
     ],
@@ -88,113 +99,107 @@ const CRED_TYPES = {
   generic: {
     label:  'Generic Secret',
     color:  'gray',
-    icon:   '🔑',
+    Icon:   Lock,
     fields: [
       { key: 'value', label: 'Secret Value', placeholder: 'Any secret string', type: 'password' },
     ],
   },
 }
 
-const COLOR_CLASSES = {
-  indigo: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/30', text: 'text-indigo-300', dot: 'bg-indigo-500', badge: 'bg-indigo-500/20 text-indigo-300' },
-  purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', dot: 'bg-purple-500', badge: 'bg-purple-500/20 text-purple-300' },
-  green:  { bg: 'bg-green-500/10',  border: 'border-green-500/30',  text: 'text-green-300',  dot: 'bg-green-500',  badge: 'bg-green-500/20  text-green-300'  },
-  blue:   { bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   dot: 'bg-blue-500',   badge: 'bg-blue-500/20   text-blue-300'   },
-  cyan:   { bg: 'bg-cyan-500/10',   border: 'border-cyan-500/30',   text: 'text-cyan-300',   dot: 'bg-cyan-500',   badge: 'bg-cyan-500/20   text-cyan-300'   },
-  gray:   { bg: 'bg-gray-500/10',   border: 'border-gray-500/30',   text: 'text-gray-300',   dot: 'bg-gray-400',   badge: 'bg-gray-500/20   text-gray-300'   },
+// Color map — dark-mode safe
+const COLORS = {
+  indigo: { pill: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
+  violet: { pill: 'bg-violet-500/10 text-violet-400 border-violet-500/20', icon: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
+  green:  { pill: 'bg-green-500/10  text-green-400  border-green-500/20',  icon: 'bg-green-500/10  text-green-400  border-green-500/20'  },
+  blue:   { pill: 'bg-blue-500/10   text-blue-400   border-blue-500/20',   icon: 'bg-blue-500/10   text-blue-400   border-blue-500/20'   },
+  cyan:   { pill: 'bg-cyan-500/10   text-cyan-400   border-cyan-500/20',   icon: 'bg-cyan-500/10   text-cyan-400   border-cyan-500/20'   },
+  gray:   { pill: 'bg-gray-500/10   text-gray-400   border-gray-500/20',   icon: 'bg-gray-500/10   text-gray-400   border-gray-500/20'   },
 }
 
-const INPUT = 'w-full bg-white/[0.04] border border-white/[0.08] text-white/90 text-sm rounded-xl px-3 py-2 outline-none focus:border-white/25 transition-colors placeholder:text-white/20'
-const LABEL = 'text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1.5 block'
-
-// ── Topbar ────────────────────────────────────────────────────────────────
-function Topbar() {
+// ── PasswordInput ─────────────────────────────────────────────────────────────
+function PasswordInput({ value, onChange, placeholder, className }) {
+  const [show, setShow] = useState(false)
   return (
-    <div className="h-14 border-b border-white/[0.06] flex items-center px-5 shrink-0 bg-[#0a0a0a] justify-between z-10">
-      <div className="flex items-center gap-3">
-        <Link to="/dashboard"
-          className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/80 rounded-lg hover:bg-white/10 transition-colors text-sm font-medium flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Dashboard
-        </Link>
-        <span className="text-white/20 text-xs">|</span>
-        <span className="text-white font-semibold text-sm flex items-center gap-2">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-yellow-400">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          Credentials Vault
-        </span>
-      </div>
-      <span className="text-white/20 text-xs">Secrets encrypted with AES-256-GCM</span>
-    </div>
-  )
-}
-
-// ── Empty state ───────────────────────────────────────────────────────────
-function EmptyState({ onNew }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-10 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-3xl">
-        🔐
-      </div>
-      <div>
-        <h3 className="text-white/80 font-semibold text-base mb-1">No credentials yet</h3>
-        <p className="text-white/30 text-sm leading-relaxed max-w-xs">
-          Save your API keys, database passwords, and tokens here. They're encrypted before storage — nodes can reference them by name.
-        </p>
-      </div>
-      <button onClick={onNew}
-        className="px-4 py-2 bg-yellow-500 text-black font-semibold text-sm rounded-xl hover:bg-yellow-400 transition-colors flex items-center gap-2 shadow-lg shadow-yellow-500/20">
-        + Add First Credential
+    <div className="relative">
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete="new-password"
+        className={className + ' pr-10'}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setShow(s => !s)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-current opacity-40 hover:opacity-70 transition-opacity"
+      >
+        {show ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
     </div>
   )
 }
 
-// ── Credential list item ──────────────────────────────────────────────────
-function CredentialItem({ cred, selected, onClick, onDelete }) {
+// ── CredentialItem ────────────────────────────────────────────────────────────
+function CredentialItem({ cred, selected, onClick, onDelete, t, dark }) {
   const def = CRED_TYPES[cred.credential_type] || CRED_TYPES.generic
-  const c   = COLOR_CLASSES[def.color] || COLOR_CLASSES.gray
+  const c   = COLORS[def.color] || COLORS.gray
 
   return (
     <div
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-white/[0.04] transition-all hover:bg-white/[0.03] ${selected ? 'bg-white/[0.06]' : ''}`}
+      className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-all border-b ${
+        dark ? 'border-white/[0.04]' : 'border-black/[0.04]'
+      } ${selected
+        ? dark ? 'bg-orange-500/8' : 'bg-orange-500/5'
+        : t.sectionHover
+      }`}
     >
-      <span className="text-xl shrink-0">{def.icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-white/80 text-sm font-medium truncate">{cred.name}</p>
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${c.badge}`}>{def.label}</span>
+      {/* Icon */}
+      <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${c.icon}`}>
+        <def.Icon size={14} />
       </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className={`${t.textSecondary} text-sm font-medium truncate ${selected ? 'text-orange-400' : 'group-hover:text-orange-400 transition-colors'}`}>
+          {cred.name}
+        </p>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${c.pill}`}>
+          {def.label}
+        </span>
+      </div>
+
+      {/* Delete */}
       <button
         onClick={e => { e.stopPropagation(); onDelete(cred) }}
-        className="text-white/15 hover:text-red-400 transition-colors ml-1 shrink-0"
+        className={`opacity-0 group-hover:opacity-100 ${t.textFaint} hover:text-red-400 transition-all ml-1 shrink-0`}
         title="Delete"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
-          <path d="M9 6V4h6v2"/>
-        </svg>
+        <Trash2 size={14} />
       </button>
+
+      {selected && <ChevronRight size={14} className="text-orange-400 shrink-0" />}
     </div>
   )
 }
 
-// ── Credential form (Create + Edit) ──────────────────────────────────────
-function CredentialForm({ initial, onSave, onCancel }) {
+// ── CredentialForm ────────────────────────────────────────────────────────────
+function CredentialForm({ initial, onSave, onCancel, t, dark }) {
   const isEdit = !!initial
-
-  const [name, setName]   = useState(initial?.name || '')
-  const [type, setType]   = useState(initial?.credential_type || 'postgres_db')
+  const [name,   setName]   = useState(initial?.name || '')
+  const [type,   setType]   = useState(initial?.credential_type || 'postgres_db')
   const [fields, setFields] = useState({})
   const [saving, setSaving] = useState(false)
 
   const def = CRED_TYPES[type] || CRED_TYPES.generic
+  const c   = COLORS[def.color] || COLORS.gray
 
   const handleField = (key, val) => setFields(prev => ({ ...prev, [key]: val }))
+
+  const inputCls = `w-full ${t.bgInput} border ${t.borderInput} ${t.textPrimary} text-sm rounded-xl px-3 py-2.5 outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all ${t.textPlaceholder}`
+  const labelCls = `${t.textFaint} text-[10px] font-bold uppercase tracking-widest mb-1.5 block`
 
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error('Credential name is required'); return }
@@ -203,7 +208,6 @@ function CredentialForm({ initial, onSave, onCancel }) {
 
     setSaving(true)
     try {
-      const body = { name: name.trim(), credential_type: type, secret_fields: fields }
       let res
       if (isEdit) {
         const payload = { name: name.trim() }
@@ -213,7 +217,8 @@ function CredentialForm({ initial, onSave, onCancel }) {
         })
       } else {
         res = await apiFetch(`${API}/credentials/`, {
-          method: 'POST', body: JSON.stringify(body),
+          method: 'POST',
+          body: JSON.stringify({ name: name.trim(), credential_type: type, secret_fields: fields }),
         })
       }
       if (!res.ok) {
@@ -231,97 +236,131 @@ function CredentialForm({ initial, onSave, onCancel }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/[0.06] shrink-0">
-        <h2 className="text-white font-semibold text-base">
-          {isEdit ? `Edit: ${initial.name}` : 'New Credential'}
-        </h2>
-        <p className="text-white/30 text-xs mt-0.5">
-          Secrets are encrypted with AES-256-GCM before being stored.
-        </p>
+      <div className={`px-6 py-5 border-b ${t.border} shrink-0`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${c.icon}`}>
+            <def.Icon size={16} />
+          </div>
+          <div>
+            <h2 className={`${t.textPrimary} font-semibold text-base`}>
+              {isEdit ? `Edit: ${initial.name}` : 'New Credential'}
+            </h2>
+            <p className={`${t.textFaint} text-xs mt-0.5`}>
+              Secrets are encrypted with AES-256-GCM before storage
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+
         {/* Name */}
         <div>
-          <label className={LABEL}>Credential Name</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)}
+          <label className={labelCls}>Credential Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
             placeholder="e.g. My Neon DB, OpenAI Production Key"
-            className={INPUT} />
+            className={inputCls}
+          />
         </div>
 
-        {/* Type — only editable on create */}
+        {/* Type selector (create only) */}
         {!isEdit && (
           <div>
-            <label className={LABEL}>Credential Type</label>
-            <select value={type} onChange={e => { setType(e.target.value); setFields({}) }}
-              className={INPUT + ' cursor-pointer'}>
+            <label className={labelCls}>Credential Type</label>
+            <select
+              value={type}
+              onChange={e => { setType(e.target.value); setFields({}) }}
+              className={inputCls + ' cursor-pointer'}
+            >
               {Object.entries(CRED_TYPES).map(([k, v]) => (
-                <option key={k} value={k} className="bg-[#111]">{v.label}</option>
+                <option key={k} value={k} className={dark ? 'bg-[#111]' : 'bg-white'}>
+                  {v.label}
+                </option>
               ))}
             </select>
           </div>
         )}
 
-        {/* Type badge on edit */}
-        {isEdit && (() => {
-          const c = COLOR_CLASSES[def.color] || COLOR_CLASSES.gray
-          return (
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${c.bg} ${c.border}`}>
-              <span>{def.icon}</span>
-              <span className={`text-xs font-semibold ${c.text}`}>{def.label}</span>
-            </div>
-          )
-        })()}
+        {/* Type badge (edit only) */}
+        {isEdit && (
+          <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${c.icon}`}>
+            <def.Icon size={15} />
+            <span className="text-xs font-semibold">{def.label}</span>
+          </div>
+        )}
 
         {/* Secret fields */}
         <div>
-          <label className={LABEL}>
+          <label className={labelCls}>
             {isEdit ? 'Update Secret Fields (leave blank to keep existing)' : 'Secret Fields'}
           </label>
-          <div className="flex flex-col gap-3 p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]">
+          <div className={`flex flex-col gap-4 p-4 ${dark ? 'bg-white/[0.02]' : 'bg-black/[0.02]'} rounded-xl border ${t.border}`}>
             {isEdit && (
-              <div className="flex items-center gap-2 text-xs text-yellow-400/70 mb-1">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Existing values are encrypted. Enter new values to update.
+              <div className={`flex items-center gap-2 text-xs ${dark ? 'text-orange-400/70' : 'text-orange-600/70'}`}>
+                <Lock size={12} />
+                Existing values are encrypted — enter new values to update them.
               </div>
             )}
             {def.fields.map(f => (
               <div key={f.key}>
-                <label className={LABEL}>{f.label}</label>
-                <input
-                  type={f.type === 'password' ? 'password' : 'text'}
-                  value={fields[f.key] || ''}
-                  onChange={e => handleField(f.key, e.target.value)}
-                  placeholder={f.placeholder}
-                  className={INPUT}
-                  autoComplete="new-password"
-                />
+                <label className={labelCls}>{f.label}</label>
+                {f.type === 'password' ? (
+                  <PasswordInput
+                    value={fields[f.key] || ''}
+                    onChange={e => handleField(f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                    className={inputCls}
+                  />
+                ) : (
+                  <input
+                    type={f.type}
+                    value={fields[f.key] || ''}
+                    onChange={e => handleField(f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                    className={inputCls}
+                  />
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Security note */}
-        <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 text-xs text-yellow-300/70 leading-relaxed">
-          <strong className="text-yellow-300/90 block mb-1">🔒 How encryption works</strong>
-          Your secrets are encrypted with <strong>AES-256-GCM</strong> using a key derived from your user account.
-          The server never logs plaintext values. When a node runs, secrets are decrypted in-memory only for that execution.
+        {/* Encryption note */}
+        <div className={`flex items-start gap-3 p-3.5 rounded-xl border ${
+          dark ? 'bg-orange-500/5 border-orange-500/15' : 'bg-orange-500/5 border-orange-500/20'
+        }`}>
+          <ShieldCheck size={15} className="text-orange-400 shrink-0 mt-0.5" />
+          <div>
+            <p className={`text-xs font-semibold ${dark ? 'text-orange-300/90' : 'text-orange-600'} mb-1`}>
+              How encryption works
+            </p>
+            <p className={`text-xs leading-relaxed ${dark ? 'text-orange-300/60' : 'text-orange-700/70'}`}>
+              Secrets are encrypted with <strong>AES-256-GCM</strong> using a key derived from your account.
+              The server never logs plaintext values. Secrets are decrypted in-memory only during execution.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Footer buttons */}
-      <div className="px-6 py-4 border-t border-white/[0.06] shrink-0 flex items-center gap-3">
-        <button onClick={handleSubmit} disabled={saving}
-          className="flex-1 py-2 bg-yellow-500 text-black font-semibold text-sm rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 shadow-lg shadow-yellow-500/20">
-          {saving ? 'Saving…' : (isEdit ? 'Update Credential' : 'Save & Encrypt')}
+      {/* Footer */}
+      <div className={`px-6 py-4 border-t ${t.border} shrink-0 flex items-center gap-3`}>
+        <button
+          onClick={handleSubmit}
+          disabled={saving}
+          className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : isEdit ? 'Update Credential' : 'Save & Encrypt'}
         </button>
-        <button onClick={onCancel}
-          className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 text-sm rounded-xl hover:bg-white/10 transition-colors">
+        <button
+          onClick={onCancel}
+          className={`px-5 py-2.5 ${t.bgInput} border ${t.border} ${t.textMuted} text-sm rounded-xl hover:opacity-80 transition-opacity`}
+        >
           Cancel
         </button>
       </div>
@@ -329,33 +368,35 @@ function CredentialForm({ initial, onSave, onCancel }) {
   )
 }
 
-// ── Delete confirmation modal ─────────────────────────────────────────────
-function DeleteModal({ cred, onConfirm, onCancel }) {
+// ── Delete modal ──────────────────────────────────────────────────────────────
+function DeleteModal({ cred, onConfirm, onCancel, t }) {
   const [deleting, setDeleting] = useState(false)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className={`w-full max-w-sm ${t.bgPanel} border ${t.border} rounded-2xl p-6 shadow-2xl flex flex-col gap-5`}>
+        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+          <Trash2 size={20} className="text-red-400" />
+        </div>
         <div className="text-center">
-          <div className="text-3xl mb-3">⚠️</div>
-          <h3 className="text-white font-semibold text-base">Delete Credential?</h3>
-          <p className="text-white/40 text-sm mt-1 leading-relaxed">
-            "<strong className="text-white/70">{cred.name}</strong>" will be permanently deleted.
+          <h3 className={`${t.textPrimary} font-semibold text-base mb-1`}>Delete Credential?</h3>
+          <p className={`${t.textMuted} text-sm leading-relaxed`}>
+            <span className={`${t.textSecondary} font-medium`}>"{cred.name}"</span> will be permanently deleted.
             Any node using this credential will fail until reconfigured.
           </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={onCancel} disabled={deleting}
-            className="flex-1 py-2 bg-white/5 border border-white/10 text-white/60 text-sm rounded-xl hover:bg-white/10 transition-colors">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className={`flex-1 py-2.5 ${t.bgInput} border ${t.border} ${t.textMuted} text-sm rounded-xl hover:opacity-80 transition-opacity`}
+          >
             Cancel
           </button>
           <button
             disabled={deleting}
-            onClick={async () => {
-              setDeleting(true)
-              await onConfirm()
-              setDeleting(false)
-            }}
-            className="flex-1 py-2 bg-red-500 text-white font-semibold text-sm rounded-xl hover:bg-red-400 transition-colors disabled:opacity-50">
+            onClick={async () => { setDeleting(true); await onConfirm(); setDeleting(false) }}
+            className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50"
+          >
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
@@ -364,13 +405,61 @@ function DeleteModal({ cred, onConfirm, onCancel }) {
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyPane({ onNew, t }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-10 text-center">
+      <div className={`w-16 h-16 rounded-2xl ${t.bgInput} border ${t.border} flex items-center justify-center`}>
+        <KeyRound size={28} className={t.textFaint} />
+      </div>
+      <div>
+        <h3 className={`${t.textSecondary} font-semibold text-base mb-1`}>No credentials yet</h3>
+        <p className={`${t.textMuted} text-sm leading-relaxed max-w-xs`}>
+          Save your API keys, database passwords, and tokens here.
+          They're encrypted before storage — nodes can reference them by name.
+        </p>
+      </div>
+      <button
+        onClick={onNew}
+        className="px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm rounded-xl transition-colors flex items-center gap-2 shadow-lg shadow-orange-500/20"
+      >
+        <Plus size={15} /> Add First Credential
+      </button>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function Credentials() {
+  const navigate = useNavigate()
+
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem('flowDarkMode')
+    return saved === null ? true : saved === 'true'
+  })
+  const toggleDark = () => {
+    setDark(prev => {
+      const next = !prev
+      localStorage.setItem('flowDarkMode', String(next))
+      return next
+    })
+  }
+  const t = dark ? T.dark : T.light
+
+  const [activeNav, setActiveNav] = useState('credentials')
   const [creds,    setCreds]    = useState([])
   const [loading,  setLoading]  = useState(true)
-  const [selected, setSelected] = useState(null)   // editing / viewing
+  const [selected, setSelected] = useState(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState(null)
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userName')
+    navigate('/login')
+  }
+
+  const userName = localStorage.getItem('userName') || ''
 
   const loadCreds = useCallback(async () => {
     try {
@@ -389,9 +478,7 @@ export default function Credentials() {
   const handleSave = (saved) => {
     setCreds(prev => {
       const idx = prev.findIndex(c => c.id === saved.id)
-      if (idx >= 0) {
-        const next = [...prev]; next[idx] = saved; return next
-      }
+      if (idx >= 0) { const next = [...prev]; next[idx] = saved; return next }
       return [...prev, saved]
     })
     setCreating(false)
@@ -412,32 +499,54 @@ export default function Credentials() {
     }
   }
 
-  const showForm = creating || selected
+  const showForm = creating || !!selected
 
   return (
-    <div className="h-screen bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
-      <Topbar />
+    <DashboardLayout
+      activeId={activeNav}
+      onSelect={setActiveNav}
+      userName={userName}
+      onLogout={logout}
+      breadcrumb="Credentials Vault"
+      dark={dark}
+      onToggleDark={toggleDark}
+    >
+      <div className={`flex h-full ${t.bg} transition-colors duration-200 overflow-hidden`}>
 
-      <div className="flex flex-1 overflow-hidden">
         {/* ── Left: credential list ── */}
-        <aside className="w-72 border-r border-white/[0.06] flex flex-col bg-[#0e0e0e] shrink-0">
-          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-            <span className="text-white/50 text-[11px] font-bold uppercase tracking-widest">
-              Saved Credentials {!loading && `(${creds.length})`}
-            </span>
+        <aside className={`w-72 border-r ${t.border} flex flex-col ${t.bgPanel} shrink-0 h-full`}>
+          {/* Header */}
+          <div className={`px-4 py-3.5 border-b ${t.border} flex items-center justify-between shrink-0`}>
+            <div className="flex items-center gap-2">
+              <KeyRound size={13} className={t.textFaint} />
+              <span className={`${t.textFaint} text-[11px] font-bold uppercase tracking-widest`}>
+                Saved Credentials
+              </span>
+              {!loading && (
+                <span className={`text-[10px] font-mono ${t.textFaint} ${t.bgInput} px-1.5 py-0.5 rounded-md border ${t.border}`}>
+                  {creds.length}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => { setCreating(true); setSelected(null) }}
-              className="w-6 h-6 rounded-lg bg-yellow-500 text-black flex items-center justify-center hover:bg-yellow-400 transition-colors font-bold text-sm"
+              className="w-7 h-7 rounded-lg bg-orange-500 hover:bg-orange-400 text-white flex items-center justify-center transition-colors shadow-sm"
               title="New credential"
-            >+</button>
+            >
+              <Plus size={14} />
+            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          {/* List */}
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {loading && (
-              <div className="flex items-center justify-center h-20 text-white/20 text-sm">Loading…</div>
+              <div className="flex items-center justify-center h-20 gap-2">
+                <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <span className={`${t.textFaint} text-sm`}>Loading…</span>
+              </div>
             )}
             {!loading && creds.length === 0 && !creating && (
-              <EmptyState onNew={() => setCreating(true)} />
+              <EmptyPane onNew={() => setCreating(true)} t={t} />
             )}
             {creds.map(c => (
               <CredentialItem
@@ -446,35 +555,52 @@ export default function Credentials() {
                 selected={selected?.id === c.id}
                 onClick={() => { setSelected(c); setCreating(false) }}
                 onDelete={setToDelete}
+                t={t}
+                dark={dark}
               />
             ))}
           </div>
+
+          {/* Footer encryption badge */}
+          <div className={`px-4 py-3 border-t ${t.border} flex items-center gap-2 shrink-0`}>
+            <ShieldCheck size={12} className="text-orange-400 shrink-0" />
+            <span className={`${t.textFaint} text-[10px]`}>AES-256-GCM encrypted at rest</span>
+          </div>
         </aside>
 
-        {/* ── Right: form / empty ── */}
-        <main className="flex-1 overflow-hidden">
+        {/* ── Right: form or placeholder ── */}
+        <main className="flex-1 overflow-hidden flex flex-col">
           {showForm ? (
             <CredentialForm
               initial={creating ? null : selected}
               onSave={handleSave}
               onCancel={() => { setCreating(false); setSelected(null) }}
+              t={t}
+              dark={dark}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-10">
-              <div className="text-5xl opacity-20">🔐</div>
-              <p className="text-white/20 text-sm">Select a credential to edit, or create a new one.</p>
+              <div className={`w-16 h-16 rounded-2xl ${t.bgInput} border ${t.border} flex items-center justify-center`}>
+                <KeyRound size={28} className={t.textFaint} />
+              </div>
+              <div>
+                <p className={`${t.textSecondary} font-medium text-sm mb-1`}>Select a credential to edit</p>
+                <p className={`${t.textFaint} text-xs`}>or create a new one with the + button</p>
+              </div>
             </div>
           )}
         </main>
       </div>
 
+      {/* Delete confirmation */}
       {toDelete && (
         <DeleteModal
           cred={toDelete}
           onConfirm={handleDelete}
           onCancel={() => setToDelete(null)}
+          t={t}
         />
       )}
-    </div>
+    </DashboardLayout>
   )
 }
