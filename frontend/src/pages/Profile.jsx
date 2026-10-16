@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { DashboardLayout } from '../components/ui/dashboard-sidebar'
+import { T } from '../theme'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -14,6 +15,21 @@ function authHeaders() {
 export default function Profile() {
   const navigate = useNavigate()
   const fileRef  = useRef(null)
+
+  // ── Dark/Light mode (synced with rest of app) ─────────────────────────
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem('flowDarkMode')
+    return saved === null ? true : saved === 'true'
+  })
+  const toggleDark = useCallback(() => {
+    setDark(prev => {
+      const next = !prev
+      localStorage.setItem('flowDarkMode', String(next))
+      return next
+    })
+  }, [])
+
+  const t = dark ? T.dark : T.light
 
   const [user,      setUser]      = useState(null)
   const [error,     setError]     = useState('')
@@ -131,10 +147,10 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className={`min-h-screen ${t.bg} flex items-center justify-center`}>
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/50 text-sm">Loading profile…</p>
+          <p className={`${t.textMuted} text-sm`}>Loading profile…</p>
         </div>
       </div>
     )
@@ -142,7 +158,7 @@ export default function Profile() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+      <div className={`min-h-screen ${t.bg} flex items-center justify-center px-4`}>
         <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">{error}</div>
       </div>
     )
@@ -160,192 +176,199 @@ export default function Profile() {
       userName={user?.name}
       onLogout={logout}
       breadcrumb="Profile"
+      dark={dark}
+      onToggleDark={toggleDark}
     >
-      <div className="p-6 md:p-8">
-        {/* Page header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-xl font-bold text-white">Profile</h1>
-            <p className="text-white/30 text-sm mt-0.5">Manage your account settings</p>
+      <div className={`min-h-full ${t.bg} transition-colors duration-200`}>
+        <div className="p-6 md:p-8 max-w-3xl">
+
+          {/* Page header */}
+          <div className="mb-8">
+            <h1 className={`text-xl font-bold ${t.textPrimary}`}>Profile</h1>
+            <p className={`${t.textMuted} text-sm mt-0.5`}>Manage your account settings</p>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-6 max-w-3xl">
+          <div className="flex flex-col gap-5">
 
-          {/* ── Profile card ── */}
-          <div className="bg-white/[0.02] rounded-2xl border border-white/[0.07] overflow-hidden">
+            {/* ── Profile card ── */}
+            <div className={`${t.bgCard} rounded-2xl border ${t.borderCard} overflow-hidden`}>
 
-            {/* Banner gradient */}
-            <div className="h-24 bg-gradient-to-r from-orange-600/25 via-orange-500/10 to-amber-600/15" />
+              {/* Banner gradient */}
+              <div className={`h-28 ${dark
+                ? 'bg-gradient-to-r from-orange-600/30 via-orange-500/15 to-amber-600/20'
+                : 'bg-gradient-to-r from-orange-400/20 via-orange-300/10 to-amber-400/15'}`}
+              />
 
-            {/* Avatar & name */}
-            <div className="px-6 -mt-8 pb-6">
-              <div className="flex items-end gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700
-                  flex items-center justify-center text-white text-xl font-bold
-                  border-4 border-[#0a0a0a] shadow-xl">
-                  {initial}
-                </div>
-                <div className="pb-1">
-                  <h2 className="text-lg font-bold text-white">{user?.name}</h2>
-                  <p className="text-white/40 text-sm">{user?.email}</p>
-                </div>
+              {/* Avatar row */}
+              <div className="px-6 -mt-9 pb-6">
+                <div className="flex items-end gap-4 mb-6">
+                  <div className={`w-[68px] h-[68px] rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700
+                    flex items-center justify-center text-white text-2xl font-bold
+                    border-4 ${dark ? 'border-[#0e0e0e]' : 'border-white'} shadow-xl shrink-0`}>
+                    {initial}
+                  </div>
+                  <div className="pb-1 flex-1 min-w-0">
+                    <h2 className={`text-lg font-bold ${t.textPrimary} truncate`}>{user?.name}</h2>
+                    <p className={`${t.textMuted} text-sm truncate`}>{user?.email}</p>
+                  </div>
 
-                {!editing && (
-                  <button onClick={() => setEditing(true)}
-                    className="ml-auto mb-1 px-4 py-1.5 bg-white/5 border border-white/10 text-white/60
-                      text-sm rounded-lg hover:bg-white/10 hover:text-white/90 transition-colors
-                      flex items-center gap-1.5">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    Edit
-                  </button>
-                )}
-              </div>
-
-              {/* Info table */}
-              <div className="bg-white/[0.03] rounded-xl border border-white/[0.06] divide-y divide-white/[0.06]">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-white/40 text-sm">User ID</span>
-                  <span className="text-white/70 text-sm font-mono">#{user?.id}</span>
-                </div>
-
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-white/40 text-sm">Name</span>
-                  {editing ? (
-                    <input value={editName} onChange={e => setEditName(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm
-                        w-60 focus:outline-none focus:border-orange-500/50" />
-                  ) : (
-                    <span className="text-white/80 text-sm">{user?.name}</span>
+                  {!editing && (
+                    <button onClick={() => setEditing(true)}
+                      className={`mb-1 shrink-0 px-4 py-1.5 ${t.bgInput} border ${t.borderInput} ${t.textSecondary}
+                        text-sm rounded-lg hover:opacity-80 transition-opacity
+                        flex items-center gap-1.5`}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      Edit
+                    </button>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-white/40 text-sm">Email</span>
-                  {editing ? (
-                    <input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email"
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm
-                        w-60 focus:outline-none focus:border-orange-500/50" />
-                  ) : (
-                    <span className="text-white/80 text-sm">{user?.email}</span>
-                  )}
+                {/* Stats row */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className={`${t.bgInput} border ${t.border} rounded-xl p-3`}>
+                    <p className={`${t.textFaint} text-xs mb-1`}>Total Workflows</p>
+                    <p className={`${t.textPrimary} text-xl font-bold`}>{workflows.length}</p>
+                  </div>
+                  <div className={`${t.bgInput} border ${t.border} rounded-xl p-3`}>
+                    <p className={`${t.textFaint} text-xs mb-1`}>Member Since</p>
+                    <p className={`${t.textSecondary} text-sm font-medium mt-1`}>{joinDate ?? '—'}</p>
+                  </div>
                 </div>
 
-                {joinDate && (
+                {/* Info table */}
+                <div className={`${dark ? 'bg-white/[0.03]' : 'bg-black/[0.02]'} rounded-xl border ${t.border} divide-y ${t.border}`}>
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-white/40 text-sm">Joined</span>
-                    <span className="text-white/60 text-sm">{joinDate}</span>
+                    <span className={`${t.textMuted} text-sm`}>User ID</span>
+                    <span className={`${t.textSecondary} text-sm font-mono`}>#{user?.id}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className={`${t.textMuted} text-sm`}>Name</span>
+                    {editing ? (
+                      <input value={editName} onChange={e => setEditName(e.target.value)}
+                        className={`${t.bgInput} border ${t.borderInput} rounded-lg px-3 py-1.5 ${t.textPrimary} text-sm
+                          w-56 focus:outline-none focus:border-orange-500/60 transition-colors`} />
+                    ) : (
+                      <span className={`${t.textSecondary} text-sm`}>{user?.name}</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className={`${t.textMuted} text-sm`}>Email</span>
+                    {editing ? (
+                      <input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email"
+                        className={`${t.bgInput} border ${t.borderInput} rounded-lg px-3 py-1.5 ${t.textPrimary} text-sm
+                          w-56 focus:outline-none focus:border-orange-500/60 transition-colors`} />
+                    ) : (
+                      <span className={`${t.textSecondary} text-sm`}>{user?.email}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Save / Cancel buttons (edit mode) */}
+                {editing && (
+                  <div className="flex items-center gap-3 mt-4">
+                    <button onClick={handleSave} disabled={saving}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-semibold
+                        rounded-lg transition-colors disabled:opacity-50">
+                      {saving ? 'Saving…' : 'Save Changes'}
+                    </button>
+                    <button onClick={() => {
+                      setEditing(false); setEditName(user.name); setEditEmail(user.email); setSaveMsg('')
+                    }}
+                      className={`px-5 py-2 ${t.bgInput} border ${t.border} ${t.textMuted} text-sm
+                        rounded-lg hover:opacity-80 transition-opacity`}>
+                      Cancel
+                    </button>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-white/40 text-sm">Workflows</span>
-                  <span className="text-white/60 text-sm font-mono">{workflows.length}</span>
+                {/* Status message */}
+                {saveMsg && (
+                  <p className={`mt-3 text-sm ${saveMsg.includes('updated') ? 'text-green-500' : 'text-red-400'}`}>
+                    {saveMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Import Workflow card ── */}
+            <div className={`${t.bgCard} rounded-2xl border ${t.borderCard} p-6`}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className={`${t.textPrimary} font-semibold text-sm`}>Import Workflow</h3>
+                  <p className={`${t.textMuted} text-xs mt-0.5`}>Load a workflow from an exported JSON file</p>
                 </div>
               </div>
 
-              {/* Save / Cancel buttons (edit mode) */}
-              {editing && (
-                <div className="flex items-center gap-3 mt-4">
-                  <button onClick={handleSave} disabled={saving}
-                    className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-semibold
-                      rounded-lg transition-colors disabled:opacity-50">
-                    {saving ? 'Saving…' : 'Save Changes'}
-                  </button>
-                  <button onClick={() => {
-                    setEditing(false); setEditName(user.name); setEditEmail(user.email); setSaveMsg('')
-                  }}
-                    className="px-5 py-2 bg-white/5 border border-white/10 text-white/60 text-sm
-                      rounded-lg hover:bg-white/10 transition-colors">
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {/* Status message */}
-              {saveMsg && (
-                <p className={`mt-3 text-sm ${saveMsg.includes('updated') ? 'text-green-400' : 'text-red-400'}`}>
-                  {saveMsg}
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="hidden"
+                  id="import-json"
+                />
+                <button onClick={() => fileRef.current?.click()} disabled={importing}
+                  className="px-5 py-2.5 bg-orange-500/10 border border-orange-500/25 text-orange-400
+                    text-sm font-semibold rounded-xl hover:bg-orange-500/20 transition-colors
+                    disabled:opacity-50 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  {importing ? 'Importing…' : 'Choose JSON File'}
+                </button>
+                <p className={`${t.textFaint} text-xs`}>
+                  Accepts exported workflow .json files
                 </p>
-              )}
+              </div>
             </div>
+
+            {/* ── Recent workflows ── */}
+            {workflows.length > 0 && (
+              <div className={`${t.bgCard} rounded-2xl border ${t.borderCard} overflow-hidden`}>
+                <div className={`px-6 py-4 border-b ${t.border} flex items-center justify-between`}>
+                  <h3 className={`${t.textPrimary} font-semibold text-sm`}>Your Workflows</h3>
+                  <span className={`${t.textFaint} text-xs font-mono`}>{workflows.length} total</span>
+                </div>
+                <div className={`divide-y ${dark ? 'divide-white/[0.04]' : 'divide-black/[0.04]'}`}>
+                  {workflows.slice(0, 10).map(wf => (
+                    <Link key={wf.id} to={`/flow/${wf.id}`}
+                      className={`flex items-center justify-between px-6 py-3.5 ${t.sectionHover} transition-colors group`}>
+                      <div className="min-w-0 flex-1">
+                        <span className={`${t.textSecondary} text-sm font-medium group-hover:text-orange-400 transition-colors truncate block`}>{wf.name}</span>
+                        {wf.description && (
+                          <p className={`${t.textFaint} text-xs mt-0.5 truncate`}>{wf.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                        <span className={`${t.textFaint} text-xs`}>
+                          {new Date(wf.created_at).toLocaleDateString()}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2" className={`${t.iconFaint} group-hover:text-orange-400 transition-colors`}>
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
-
-          {/* ── Import Workflow card ── */}
-          <div className="bg-white/[0.02] rounded-2xl border border-white/[0.07] p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-semibold text-sm">Load Workflow</h3>
-                <p className="text-white/40 text-xs">Import a workflow from a JSON file</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-                id="import-json"
-              />
-              <button onClick={() => fileRef.current?.click()} disabled={importing}
-                className="px-5 py-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400
-                  text-sm font-semibold rounded-xl hover:bg-orange-500/20 transition-colors
-                  disabled:opacity-50 flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                {importing ? 'Importing…' : 'Choose JSON File'}
-              </button>
-              <p className="text-white/25 text-xs">
-                Accepts exported workflow .json files
-              </p>
-            </div>
-          </div>
-
-          {/* ── Recent workflows ── */}
-          {workflows.length > 0 && (
-            <div className="bg-white/[0.02] rounded-2xl border border-white/[0.07] overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06]">
-                <h3 className="text-white font-semibold text-sm">Your Workflows</h3>
-              </div>
-              <div className="divide-y divide-white/[0.04]">
-                {workflows.slice(0, 10).map(wf => (
-                  <Link key={wf.id} to={`/flow/${wf.id}`}
-                    className="flex items-center justify-between px-6 py-3.5 hover:bg-white/[0.02] transition-colors">
-                    <div>
-                      <span className="text-white/80 text-sm font-medium">{wf.name}</span>
-                      {wf.description && (
-                        <p className="text-white/30 text-xs mt-0.5">{wf.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-white/25 text-xs">
-                        {new Date(wf.created_at).toLocaleDateString()}
-                      </span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2" className="text-white/20">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
     </DashboardLayout>

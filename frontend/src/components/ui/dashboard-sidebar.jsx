@@ -18,6 +18,7 @@ import {
   User,
   Sun,
   Moon,
+  KeyRound,
 } from 'lucide-react'
 import { T } from '../../theme'
 
@@ -43,6 +44,12 @@ const NAV_GROUPS = [
           { id: 'wf-drafts', title: 'Drafts', icon: Hash },
         ],
       },
+    ],
+  },
+  {
+    heading: 'Integrations',
+    items: [
+      { id: 'credentials', title: 'Credentials Vault', icon: KeyRound, href: '/credentials' },
     ],
   },
 ]
