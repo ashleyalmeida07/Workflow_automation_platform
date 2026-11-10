@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import Credentials from './pages/Credentials'
+import ActivityPage from './pages/Activity'
+import Settings from './pages/Settings'
 
 import { Toaster } from 'react-hot-toast'
 
@@ -27,6 +29,8 @@ function App() {
         <Route path="/flow" element={<Flow />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/credentials" element={<Credentials />} />
+        <Route path="/activity" element={<ActivityPage />} />
+        <Route path="/settings" element={<Settings />} />
 
         {/* Legacy home */}
         <Route path="/home" element={<Home />} />

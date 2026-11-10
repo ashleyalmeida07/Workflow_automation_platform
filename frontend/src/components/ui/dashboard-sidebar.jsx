@@ -28,8 +28,8 @@ const NAV_GROUPS = [
   {
     items: [
       { id: 'search', title: 'Search', icon: Search, shortcut: '⌘K' },
-      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard },
-      { id: 'activity', title: 'Activity', icon: Activity },
+      { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+      { id: 'activity', title: 'Activity', icon: Activity, href: '/activity' },
     ],
   },
   {
@@ -40,8 +40,8 @@ const NAV_GROUPS = [
         title: 'My Workflows',
         icon: FolderKanban,
         children: [
-          { id: 'wf-active', title: 'Active', icon: Hash },
-          { id: 'wf-drafts', title: 'Drafts', icon: Hash },
+          { id: 'wf-active', title: 'Active', icon: Hash, href: '/dashboard' },
+          { id: 'wf-drafts', title: 'Drafts', icon: Hash, href: '/dashboard' },
         ],
       },
     ],
@@ -56,7 +56,7 @@ const NAV_GROUPS = [
 
 const BOTTOM_ITEMS = [
   { id: 'profile', title: 'Profile', icon: User, href: '/profile' },
-  { id: 'settings', title: 'Settings', icon: Settings, shortcut: '⌘,' },
+  { id: 'settings', title: 'Settings', icon: Settings, shortcut: '⌘,', href: '/settings' },
   { id: 'logout', title: 'Log out', icon: LogOut },
 ]
 

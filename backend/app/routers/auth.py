@@ -163,4 +163,33 @@ def update_profile(
     current_user.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return current_user
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+def change_password(
+    data: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.password or not verify_password(data.current_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    if len(data.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 6 characters",
+        )
+    current_user.password = hash_password(data.new_password)
+    from datetime import datetime
+    current_user.updated_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Password updated successfully"}
+
